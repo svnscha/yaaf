@@ -1,0 +1,50 @@
+site_name: yaaf
+site_description: C++20 yaaf CLI with a Lua runtime for intelligent commands, agents, tools, and MCP integrations.
+repo_url: https://github.com/svnscha/yaaf
+repo_name: svnscha/yaaf
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: readthedocs
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - fenced_code
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Lua Runtime: lua.md
+  - Lua API Reference:
+      - Overview: modules/index.md
+      - yaaf: modules/yaaf.md
+      - json: modules/json.md
+      - http: modules/http.md
+      - llm: modules/llm.md
+      - mcp: modules/mcp.md
+      - agent: modules/agent.md
+      - agents.react: modules/agents-react.md
+      - tool: modules/tool.md
+      - tools.echo: modules/tools-echo.md
+  - Tool Reference: tools/index.md
+  - MCP Tools: mcp.md
+  - Examples:
+      - Overview: examples/index.md
+      - Build A Weather Agent: examples/weather-agent.md
+      - Built-In Echo Tool: examples/echo-tool.md
+      - Basic Direct Script: examples/direct-script.md
+      - Basic CLI: examples/basic-cli.md
+      - MCP HTTP Server: examples/mcp-http-server.md
+      - MCP Stdio Server With Variables: examples/mcp-stdio-variables.md
+      - MCP HTTP And SSE Fixtures: examples/mcp-http-sse-fixtures.md
+      - Lua MCP Bridge: examples/lua-mcp-bridge.md

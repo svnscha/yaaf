@@ -1,0 +1,6 @@
+{
+    "C_Cpp.default.forcedInclude": [
+        "${workspaceFolder}/libyaaf/pch/pch_std.h",
+        "${workspaceFolder}/libyaaf/pch/pch_dependencies.h"
+    ]
+}

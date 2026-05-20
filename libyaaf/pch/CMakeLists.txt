@@ -1,0 +1,5 @@
+set(LIBYAAF_PCH_HEADERS
+  ${CMAKE_CURRENT_SOURCE_DIR}/pch_std.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/pch_dependencies.h
+  PARENT_SCOPE
+)

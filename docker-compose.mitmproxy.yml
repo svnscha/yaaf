@@ -1,0 +1,46 @@
+services:
+  mitmproxy:
+    image: mitmproxy/mitmproxy:11.0.2
+    command:
+      - mitmweb
+      - --listen-host
+      - 0.0.0.0
+      - --listen-port
+      - "8080"
+      - --web-host
+      - 0.0.0.0
+      - --web-port
+      - "8081"
+    ports:
+      - "127.0.0.1:18080:8080"
+      - "127.0.0.1:18081:8081"
+    volumes:
+      - ./.mitmproxy:/home/mitmproxy/.mitmproxy
+  mcp-hello-http:
+    image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    working_dir: /workspace/mcp-servers
+    command:
+      - python
+      - hello_http.py
+      - --host
+      - 0.0.0.0
+      - --port
+      - "39231"
+    ports:
+      - "127.0.0.1:39231:39231"
+    volumes:
+      - ./mcp-servers:/workspace/mcp-servers:ro
+  mcp-hello-sse:
+    image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    working_dir: /workspace/mcp-servers
+    command:
+      - python
+      - hello_sse.py
+      - --host
+      - 0.0.0.0
+      - --port
+      - "39232"
+    ports:
+      - "127.0.0.1:39232:39232"
+    volumes:
+      - ./mcp-servers:/workspace/mcp-servers:ro
