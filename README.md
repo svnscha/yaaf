@@ -9,7 +9,7 @@ Yaaf is a command-line runtime for small AI workflows in Lua. You can use it as 
 
 The native layer handles startup, HTTP, JSON, and MCP transports. Lua handles commands, tools, agents, and provider logic, so you can start with copyable commands and then grow into custom workflows without changing runtimes.
 
-Current development and CI support cover Windows, macOS, and Ubuntu Linux. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution.
+Current development and CI support cover Windows, macOS, and Ubuntu Linux. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution. The current runtime smoke matrix passes on Ubuntu 24.04 and records the expected glibc/libstdc++ compatibility failure on Ubuntu 22.04.
 
 ## What It Is Good At
 

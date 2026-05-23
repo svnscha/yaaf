@@ -159,8 +159,10 @@ jobs:
         include:
           - distro_name: ubuntu-24.04
             image: ubuntu:24.04
+            expected_result: pass
           - distro_name: ubuntu-22.04
             image: ubuntu:22.04
+            expected_result: glibc-floor
 
     steps:
       - name: Download Linux bundle artifact
@@ -180,7 +182,8 @@ jobs:
       - name: Smoke test Ubuntu runtime on ${{ matrix.distro_name }}
         shell: bash
         run: |
-          docker run --rm \
+          log_file="$RUNNER_TEMP/linux-runtime-${{ matrix.distro_name }}.log"
+          if docker run --rm \
             -v "${{ github.workspace }}/runtime-smoke/yaaf-linux-ubuntu-amd64:/bundle:ro" \
             --workdir /bundle \
             ${{ matrix.image }} \
@@ -191,4 +194,17 @@ jobs:
               ./yaaf examples/example.lua smoke-test > /tmp/yaaf-example.txt
               grep -q "yaaf example" /tmp/yaaf-example.txt
               grep -q "args: smoke-test" /tmp/yaaf-example.txt
-            '
+            ' >"$log_file" 2>&1; then
+            status=0
+          else
+            status=$?
+          fi
+
+          cat "$log_file"
+
+          if [[ "${{ matrix.expected_result }}" == "pass" ]]; then
+            [[ $status -eq 0 ]]
+          else
+            [[ $status -ne 0 ]]
+            grep -Eq 'GLIBC_2\.38|GLIBCXX_3\.4\.3[12]' "$log_file"
+          fi
