@@ -1,6 +1,7 @@
 #include "../../libyaaf/pch/pch_dependencies.h"
 #include "../../libyaaf/pch/pch_std.h"
 
+#include <CLI/CLI.hpp>
 #include <gtest/gtest.h>
 
 #include "../../libyaaf/cli/cli.h"
@@ -234,7 +235,7 @@ TEST(CliTests, ExplicitMcpOptionOverridesMcpFileEnvironment)
     std::filesystem::remove_all(workspace);
 }
 
-TEST(CliTests, RunsLuaFileEntryPointOutsideBuiltinCommands)
+TEST(CliTests, LegacyLuaFileEntryPointFailsWithStandardCliParseError)
 {
     std::istringstream input;
     std::ostringstream output;
@@ -242,10 +243,10 @@ TEST(CliTests, RunsLuaFileEntryPointOutsideBuiltinCommands)
 
     const auto exit_code = yaaf::cli::run({"examples/example.lua", "one", "two"}, input, output, error_output);
 
-    EXPECT_EQ(exit_code, EXIT_FAILURE);
+    EXPECT_EQ(exit_code, static_cast<int>(CLI::ExitCodes::ExtrasError));
     EXPECT_TRUE(output.str().empty());
-    EXPECT_EQ(error_output.str(),
-              "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n");
+    EXPECT_NE(error_output.str().find("The following arguments were not expected"), std::string::npos);
+    EXPECT_NE(error_output.str().find("examples/example.lua"), std::string::npos);
 }
 
 TEST(CliTests, RunSubcommandExecutesLuaFileEntryPoint)
@@ -264,7 +265,7 @@ TEST(CliTests, RunSubcommandExecutesLuaFileEntryPoint)
     EXPECT_NE(output.str().find("args: one, two\n"), std::string::npos);
 }
 
-TEST(CliTests, LegacyLuaFileEntryPointWithRootLevelMcpFailsWithMigrationGuidance)
+TEST(CliTests, LegacyLuaFileEntryPointWithRootLevelMcpFailsWithStandardCliParseError)
 {
     const auto workspace = make_test_directory("legacy-run-mcp");
     const auto script_path = workspace / "show_mcp.lua";
@@ -279,10 +280,10 @@ TEST(CliTests, LegacyLuaFileEntryPointWithRootLevelMcpFailsWithMigrationGuidance
     const auto exit_code =
         yaaf::cli::run({"--mcp", mcp_path.string(), script_path.string()}, input, output, error_output);
 
-    EXPECT_EQ(exit_code, EXIT_FAILURE);
+    EXPECT_EQ(exit_code, static_cast<int>(CLI::ExitCodes::ExtrasError));
     EXPECT_TRUE(output.str().empty());
-    EXPECT_EQ(error_output.str(),
-              "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n");
+    EXPECT_NE(error_output.str().find("The following argument was not expected"), std::string::npos);
+    EXPECT_NE(error_output.str().find(script_path.string()), std::string::npos);
 
     std::filesystem::remove_all(workspace);
 }

@@ -362,17 +362,6 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
     return nullptr;
 }
 
-bool looks_like_lua_script_path(const std::string &value)
-{
-    if (value.empty() || value.front() == '-')
-    {
-        return false;
-    }
-
-    const std::filesystem::path path{value};
-    return path.extension() == ".lua";
-}
-
 [[nodiscard]] std::vector<std::string> normalize_script_arguments(std::vector<std::string> arguments)
 {
     if (!arguments.empty() && arguments.front() == "--")
@@ -489,22 +478,6 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
     global_options.mcp_config_path = environment_or_dotenv(dotenv, "YAAF_MCP_FILE").value_or("");
     global_options.http.allow_invalid_proxy_certificates =
         global_options.http.proxy.has_value() && !global_options.http.proxy->empty();
-
-    std::size_t legacy_script_index = 0;
-    while (legacy_script_index < args.size() && args[legacy_script_index] == "--mcp")
-    {
-        if (legacy_script_index + 1 >= args.size())
-        {
-            break;
-        }
-        legacy_script_index += 2;
-    }
-    if (legacy_script_index < args.size() && looks_like_lua_script_path(args[legacy_script_index]))
-    {
-        error_output
-            << "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n";
-        return EXIT_FAILURE;
-    }
 
     std::reverse(args.begin(), args.end());
 
