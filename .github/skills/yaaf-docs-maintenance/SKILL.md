@@ -12,17 +12,17 @@ Use this skill when changing or reviewing user-facing documentation for yaaf, es
 
 Keep each document focused on its job:
 
-- [Root README](../../../README.md): concise project overview, build command, documentation links, and quick smoke tests.
-- [Docs index](../../../docs/index.md): table of contents for user-facing docs and MkDocs home page.
-- [Usage](../../../docs/usage.md): build output, executable assumptions, environment variables, core CLI commands, embeddings, and proxy setup.
-- [Lua Runtime](../../../docs/lua.md): direct script runs, command discovery, and short module overview.
-- [Lua API Reference](../../../docs/modules/index.md): per-module runtime API reference, with one page per public Lua module.
-- [Tool Reference](../../../docs/tools/index.md): built-in tool list, input schemas, MCP tool naming pointer, and custom tool authoring guide.
-- [MCP Tools](../../../docs/mcp.md): user-facing MCP config, transports, variable substitution, tool names, runtime behavior, schema support, and fixtures.
-- [Examples](../../../docs/examples/index.md): example overview, with one page per runnable example or scenario.
-- [MCP support README](../../../libyaaf/mcp/README.md): implementation-level MCP support matrix.
-- [MCP plan](../../../MCP_PLAN.md): architecture, rollout notes, and historical implementation plan.
-- [Fixture README](../../../mcp-servers/README.md): hello-world MCP fixture setup and test-only fixture knobs.
+- [Root README](https://github.com/svnscha/yaaf#readme): concise project overview, build command, documentation links, and quick smoke tests.
+- [Docs index](https://svnscha.github.io/yaaf/): table of contents for user-facing docs and MkDocs home page.
+- [Usage](https://svnscha.github.io/yaaf/usage/): build output, executable assumptions, environment variables, core CLI commands, embeddings, and proxy setup.
+- [Lua Runtime](https://svnscha.github.io/yaaf/lua/): direct script runs, command discovery, and short module overview.
+- [Lua API Reference](https://svnscha.github.io/yaaf/modules/): per-module runtime API reference, with one page per public Lua module.
+- [Tool Reference](https://svnscha.github.io/yaaf/tools/): built-in tool list, input schemas, MCP tool naming pointer, and custom tool authoring guide.
+- [MCP Tools](https://svnscha.github.io/yaaf/mcp/): user-facing MCP config, transports, variable substitution, tool names, runtime behavior, schema support, and fixtures.
+- [Examples](https://svnscha.github.io/yaaf/examples/): example overview, with one page per runnable example or scenario.
+- [MCP support README](https://github.com/svnscha/yaaf/blob/main/libyaaf/mcp/README.md): implementation-level MCP support matrix.
+- [MCP plan](https://github.com/svnscha/yaaf/blob/main/MCP_PLAN.md): architecture, rollout notes, and historical implementation plan.
+- [Fixture README](https://github.com/svnscha/yaaf/blob/main/mcp-servers/README.md): hello-world MCP fixture setup and test-only fixture knobs.
 
 ## Source Of Truth
 
@@ -58,9 +58,9 @@ Build and validation sources:
 1. Identify the behavior that changed: CLI command, option, environment variable, build output, Lua module API, shipped command/tool/agent, MCP behavior, fixture behavior, or validation command.
 2. Read the matching source files and tests before writing docs. Do not document aspirational behavior as current behavior.
 3. Update the narrowest user-facing docs first, then update index links and the root README only when discoverability changes.
-4. Keep implementation-level details in implementation docs. For MCP internals, prefer [MCP support README](../../../libyaaf/mcp/README.md); for user workflows, prefer [MCP Tools](../../../docs/mcp.md) and [Examples](../../../docs/examples/index.md).
-5. If a change affects Lua modules, update the matching page under [Lua API Reference](../../../docs/modules/index.md), add a new module page when a public module appears, and keep [Lua Runtime](../../../docs/lua.md) as the shorter overview.
-6. If a change affects built-in tools, tool result shape, tool registration, or custom tool authoring, update [Tool Reference](../../../docs/tools/index.md) and link to the relevant Lua API page instead of duplicating registry details everywhere.
+4. Keep implementation-level details in implementation docs. For MCP internals, prefer [MCP support README](https://github.com/svnscha/yaaf/blob/main/libyaaf/mcp/README.md); for user workflows, prefer [MCP Tools](https://svnscha.github.io/yaaf/mcp/) and [Examples](https://svnscha.github.io/yaaf/examples/).
+5. If a change affects Lua modules, update the matching page under [Lua API Reference](https://svnscha.github.io/yaaf/modules/), add a new module page when a public module appears, and keep [Lua Runtime](https://svnscha.github.io/yaaf/lua/) as the shorter overview.
+6. If a change affects built-in tools, tool result shape, tool registration, or custom tool authoring, update [Tool Reference](https://svnscha.github.io/yaaf/tools/) and link to the relevant Lua API page instead of duplicating registry details everywhere.
 7. If a command example changes, search the docs for stale copies of the old invocation and update related example pages together.
 8. If a feature is intentionally unsupported, say so plainly and avoid documenting partial or flaky behavior as supported.
 9. Validate docs changes with `git diff --check`. For documentation generated from, or tightly coupled to, C++ behavior, also build the affected target or run the focused tests that prove the documented behavior.
@@ -79,12 +79,12 @@ Build and validation sources:
 - For built-in runtime modules, mention that they are built in during the first sentence of the module page, then focus on behavior and API.
 - Keep Lua module docs aligned with functions actually returned by the module tables.
 - Keep each public module on its own page under `docs/modules/`; avoid recreating a long single-page module reference.
-- Keep [Tool Reference](../../../docs/tools/index.md) focused on developer workflow: built-in tool names, schemas, custom tool shape, registration, and links to complete examples.
-- When adding, renaming, or removing a built-in tool, update [Tool Reference](../../../docs/tools/index.md), the matching module page if one exists, and `mkdocs.yml` when a new public page is added.
-- When adding, renaming, or removing a module page, update `mkdocs.yml`, [Lua API Reference](../../../docs/modules/index.md), [Docs index](../../../docs/index.md) when discoverability changes, and [Root README](../../../README.md) only for top-level documentation entry changes.
-- Keep each runnable example or scenario on its own page under `docs/examples/`; keep [Examples](../../../docs/examples/index.md) as a short index.
-- When adding, renaming, or removing an example page, update `mkdocs.yml`, [Examples](../../../docs/examples/index.md), [Docs index](../../../docs/index.md) when discoverability changes, and [Root README](../../../README.md) only for top-level documentation entry changes.
-- Avoid duplicating full command references in multiple places. Put full module/API details in [Lua API Reference](../../../docs/modules/index.md), tool authoring guidance in [Tool Reference](../../../docs/tools/index.md), and copyable task examples in [Examples](../../../docs/examples/index.md).
+- Keep [Tool Reference](https://svnscha.github.io/yaaf/tools/) focused on developer workflow: built-in tool names, schemas, custom tool shape, registration, and links to complete examples.
+- When adding, renaming, or removing a built-in tool, update [Tool Reference](https://svnscha.github.io/yaaf/tools/), the matching module page if one exists, and `mkdocs.yml` when a new public page is added.
+- When adding, renaming, or removing a module page, update `mkdocs.yml`, [Lua API Reference](https://svnscha.github.io/yaaf/modules/), [Docs index](https://svnscha.github.io/yaaf/) when discoverability changes, and [Root README](https://github.com/svnscha/yaaf#readme) only for top-level documentation entry changes.
+- Keep each runnable example or scenario on its own page under `docs/examples/`; keep [Examples](https://svnscha.github.io/yaaf/examples/) as a short index.
+- When adding, renaming, or removing an example page, update `mkdocs.yml`, [Examples](https://svnscha.github.io/yaaf/examples/), [Docs index](https://svnscha.github.io/yaaf/) when discoverability changes, and [Root README](https://github.com/svnscha/yaaf#readme) only for top-level documentation entry changes.
+- Avoid duplicating full command references in multiple places. Put full module/API details in [Lua API Reference](https://svnscha.github.io/yaaf/modules/), tool authoring guidance in [Tool Reference](https://svnscha.github.io/yaaf/tools/), and copyable task examples in [Examples](https://svnscha.github.io/yaaf/examples/).
 
 ## Validation Checklist
 

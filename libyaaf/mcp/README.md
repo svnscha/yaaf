@@ -2,7 +2,7 @@
 
 This directory contains yaaf's native Model Context Protocol client. The implementation intentionally keeps protocol work in C++ and exposes only a small Lua bridge for tool registry integration.
 
-For user-facing MCP setup and examples, see [docs/mcp.md](../../docs/mcp.md) and [docs/examples.md](../../docs/examples.md).
+For user-facing MCP setup and examples, see [MCP Tools](https://svnscha.github.io/yaaf/mcp/) and [Examples](https://svnscha.github.io/yaaf/examples/).
 
 ## Configuration
 
@@ -89,7 +89,7 @@ The repository includes thin real MCP servers under `mcp-servers/` for integrati
 - `hello_http.py`: HTTP POST JSON-RPC server.
 - `hello_sse.py`: HTTP POST server returning `text/event-stream` `data:` payloads.
 
-Run them with `uv --directory ./mcp-servers run python <server>.py` plus the HTTP/SSE port arguments documented in `mcp-servers/README.md`. They expose `hello` and `repeat` tools and back the real transport tests in `tests/integration/mcp_client_tests.cpp`.
+Run them with `uv --directory ./mcp-servers run python <server>.py` plus the HTTP/SSE port arguments documented in `mcp-servers/README.md`. They expose `hello` and `repeat` tools and back the real transport tests in `tests/integration/mcp_client_tests.cpp` plus the real CLI and Lua fixture flows in `tests/integration/mcp_fixture_tests.cpp`.
 
 Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra Linux-only prerequisites for the stdio fixture tests beyond having `uv` available.
 
