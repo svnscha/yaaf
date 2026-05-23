@@ -1,6 +1,6 @@
 # MCP Tools
 
-Yaaf loads MCP tools only when a config file path is supplied. Use `--mcp <path>` with `ask`, `chat`, `agent`, or a direct Lua script run, or set `YAAF_MCP_FILE` in the process environment or `.env` file.
+Yaaf loads MCP tools only when a config file path is supplied. Use `--mcp <path>` with `ask`, `chat`, `agent`, or `run`, or set `YAAF_MCP_FILE` in the process environment or `.env` file.
 
 The file must use the VS Code MCP configuration shape unchanged. Yaaf does not auto-discover `.vscode/mcp.json`, and it does not introduce yaaf-specific MCP config keys. If you want to reuse a workspace `.vscode/mcp.json`, point to it explicitly:
 

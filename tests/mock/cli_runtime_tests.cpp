@@ -1,6 +1,7 @@
 #include "../../libyaaf/pch/pch_dependencies.h"
 #include "../../libyaaf/pch/pch_std.h"
 
+#include <CLI/CLI.hpp>
 #include <gtest/gtest.h>
 
 #include "../../libyaaf/cli/cli.h"
@@ -66,6 +67,13 @@ nlohmann::json parse_json_output(const std::ostringstream &output)
     std::filesystem::create_directories(path);
     return path;
 }
+
+void write_file(const std::filesystem::path &path, std::string_view contents)
+{
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream file{path};
+    file << contents;
+}
 } // namespace
 
 TEST(CliTests, RootHelpOmitsOllamaSubcommandOptions)
@@ -80,6 +88,7 @@ TEST(CliTests, RootHelpOmitsOllamaSubcommandOptions)
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_NE(output.str().find("ask"), std::string::npos);
     EXPECT_NE(output.str().find("doctor"), std::string::npos);
+    EXPECT_NE(output.str().find("run"), std::string::npos);
     EXPECT_EQ(output.str().find("example"), std::string::npos);
     EXPECT_NE(output.str().find("--proxy"), std::string::npos);
     EXPECT_NE(output.str().find("--pretty"), std::string::npos);
@@ -226,7 +235,7 @@ TEST(CliTests, ExplicitMcpOptionOverridesMcpFileEnvironment)
     std::filesystem::remove_all(workspace);
 }
 
-TEST(CliTests, RunsLuaFileEntryPointOutsideBuiltinCommands)
+TEST(CliTests, LegacyLuaFileEntryPointFailsWithStandardCliParseError)
 {
     std::istringstream input;
     std::ostringstream output;
@@ -234,12 +243,103 @@ TEST(CliTests, RunsLuaFileEntryPointOutsideBuiltinCommands)
 
     const auto exit_code = yaaf::cli::run({"examples/example.lua", "one", "two"}, input, output, error_output);
 
+    EXPECT_EQ(exit_code, static_cast<int>(CLI::ExitCodes::ExtrasError));
+    EXPECT_TRUE(output.str().empty());
+    EXPECT_NE(error_output.str().find("The following arguments were not expected"), std::string::npos);
+    EXPECT_NE(error_output.str().find("examples/example.lua"), std::string::npos);
+}
+
+TEST(CliTests, RunSubcommandExecutesLuaFileEntryPoint)
+{
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", "examples/example.lua", "one", "two"}, input, output, error_output);
+
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_NE(output.str().find("yaaf example\n"), std::string::npos);
     EXPECT_NE(output.str().find("endpoint: "), std::string::npos);
     EXPECT_NE(output.str().find("model: qwen3:0.6b\n"), std::string::npos);
     EXPECT_NE(output.str().find("args: one, two\n"), std::string::npos);
+}
+
+TEST(CliTests, LegacyLuaFileEntryPointWithRootLevelMcpFailsWithStandardCliParseError)
+{
+    const auto workspace = make_test_directory("legacy-run-mcp");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto mcp_path = workspace / "tools.mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(mcp_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"--mcp", mcp_path.string(), script_path.string()}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, static_cast<int>(CLI::ExitCodes::ExtrasError));
+    EXPECT_TRUE(output.str().empty());
+    EXPECT_NE(error_output.str().find("The following argument was not expected"), std::string::npos);
+    EXPECT_NE(error_output.str().find(script_path.string()), std::string::npos);
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, RunSubcommandForwardsExplicitMcpOption)
+{
+    const auto workspace = make_test_directory("run-subcommand-mcp");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto mcp_path = workspace / "tools.mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(mcp_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"run", "--mcp", mcp_path.string(), script_path.string()}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(output.str(), mcp_path.generic_string() + "\n");
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, RunSubcommandFailsClearlyWhenScriptIsMissing)
+{
+    const auto workspace = make_test_directory("run-subcommand-missing-script");
+    const auto missing_script = workspace / "missing.lua";
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", missing_script.string()}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, EXIT_FAILURE);
+    EXPECT_TRUE(output.str().empty());
+    EXPECT_NE(error_output.str().find("Lua script not found"), std::string::npos);
+    EXPECT_NE(error_output.str().find(missing_script.string()), std::string::npos);
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, RunSubcommandFailsClearlyWhenScriptPathIsNotLua)
+{
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", "examples/example.txt"}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, EXIT_FAILURE);
+    EXPECT_TRUE(output.str().empty());
+    EXPECT_EQ(error_output.str(), "yaaf failed: run requires a .lua script path\n");
 }
 
 TEST(CliTests, BuiltinCommandsAreLoadedFromLuaCliDirectory)

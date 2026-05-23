@@ -58,7 +58,7 @@ yaaf doctor --format json --pretty
 Use a local script to add a tiny custom tool and run an agent:
 
 ```powershell
-yaaf ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
+yaaf run ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
 ```
 
 Use the built-in echo tool to verify agent tool wiring before involving external services:
@@ -76,7 +76,7 @@ yaaf ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps.
 Run a Lua script directly when you want full control over the workflow:
 
 ```powershell
-yaaf ./examples/example.lua one two three
+yaaf run ./examples/example.lua one two three
 ```
 
 ## Start Here

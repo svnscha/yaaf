@@ -2,20 +2,20 @@
 
 Yaaf is a native C++ host for a Lua intelligence runtime. The native layer owns process startup, environment loading, low-level HTTP, LLM calls, MCP transports, and JSON conversion. Lua owns the user-facing extension surface: commands, agents, tools, and direct scripts.
 
-Every built-in yaaf command is implemented as a Lua module under `lua/cli/`. At startup, the native CLI reads each module's `yaaf.command({ ... })` metadata and exposes it as a normal command such as `ask`, `chat`, `agent`, `embed`, or `doctor`. The same runtime can also execute a standalone Lua file directly.
+Every built-in yaaf command is implemented as a Lua module under `lua/cli/`. At startup, the native CLI reads each module's `yaaf.command({ ... })` metadata and exposes it as a normal command such as `ask`, `chat`, `agent`, `embed`, or `doctor`. The same runtime can also execute a standalone Lua file directly through the native `run` subcommand.
 
 ## Direct Script Runs
 
 Run a script from the repository root:
 
 ```powershell
-yaaf ./examples/example.lua one two three
+yaaf run ./examples/example.lua one two three
 ```
 
-Pass an MCP config path before the script path:
+Pass an MCP config path with the `run` subcommand:
 
 ```powershell
-yaaf --mcp ./configs/tools.mcp.json ./examples/example.lua
+yaaf run --mcp ./configs/tools.mcp.json ./examples/example.lua
 ```
 
 The sample script in [examples/example.lua](https://github.com/svnscha/yaaf/blob/main/examples/example.lua) prints runtime defaults and positional arguments. [examples/weather_agent.lua](https://github.com/svnscha/yaaf/blob/main/examples/weather_agent.lua) shows how to register an additional tool and run the included ReAct agent from a standalone script.
@@ -32,7 +32,7 @@ The built-in Lua commands are:
 - `embed`: embedding requests.
 - `doctor`: environment, registry, and MCP diagnostics.
 
-`ask`, `chat`, and `agent` each declare their own `--mcp` option. The root CLI also accepts `--mcp` for direct script runs.
+`ask`, `chat`, `agent`, and `run` each accept `--mcp`. The root CLI also accepts `--mcp` as a global option.
 
 The command implementation lives in Lua, but the expensive or stateful operations stay native. For example, `ask.lua` parses command options and decides whether tools are enabled, then calls the `llm` and `json` modules. `doctor.lua` is also Lua; it gathers runtime defaults, registries, and MCP config state through public modules.
 
