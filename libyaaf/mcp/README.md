@@ -16,7 +16,7 @@ Supported server types:
 
 - `http`: JSON-RPC over HTTP POST.
 - `sse`: accepted as an HTTP-style server entry; responses with `text/event-stream` are parsed for `data:` payloads.
-- `stdio`: JSON-RPC over newline-delimited stdio on Windows and macOS builds.
+- `stdio`: JSON-RPC over newline-delimited stdio on Windows, macOS, and Linux builds.
 
 Supported server fields:
 
@@ -90,6 +90,8 @@ The repository includes thin real MCP servers under `mcp-servers/` for integrati
 - `hello_sse.py`: HTTP POST server returning `text/event-stream` `data:` payloads.
 
 Run them with `uv --directory ./mcp-servers run python <server>.py` plus the HTTP/SSE port arguments documented in `mcp-servers/README.md`. They expose `hello` and `repeat` tools and back the real transport tests in `tests/integration/mcp_client_tests.cpp`.
+
+Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra Linux-only prerequisites for the stdio fixture tests beyond having `uv` available.
 
 The stdio tests write a VS Code-shaped MCP JSON file and pass it explicitly so the yaaf runtime starts the server from that config, matching the user-facing flow. HTTP and SSE tests expect the fixture servers to be prestarted, usually through `docker compose -f docker-compose.mitmproxy.yml up`, and read fixture endpoint overrides from test-only `.env`/environment variables.
 
