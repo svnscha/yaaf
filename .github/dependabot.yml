@@ -62,36 +62,6 @@ updates:
         update-types:
           - "major"
 
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-    open-pull-requests-limit: 3
-    reviewers:
-      - "svnscha"
-    assignees:
-      - "svnscha"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "docker"
-    groups:
-      docker-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      docker-major:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
