@@ -79,12 +79,6 @@ Run a Lua script directly when you want full control over the workflow:
 yaaf run ./examples/example.lua one two three
 ```
 
-Legacy compatibility remains available for existing scripts:
-
-```powershell
-yaaf ./examples/example.lua one two three
-```
-
 ## Start Here
 
 - [Usage](https://svnscha.github.io/yaaf/usage/): build output, environment variables, command reference, embeddings, and proxy setup.

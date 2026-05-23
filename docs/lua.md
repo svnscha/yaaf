@@ -18,12 +18,6 @@ Pass an MCP config path with the `run` subcommand:
 yaaf run --mcp ./configs/tools.mcp.json ./examples/example.lua
 ```
 
-Legacy compatibility also remains available:
-
-```powershell
-yaaf --mcp ./configs/tools.mcp.json ./examples/example.lua
-```
-
 The sample script in [examples/example.lua](https://github.com/svnscha/yaaf/blob/main/examples/example.lua) prints runtime defaults and positional arguments. [examples/weather_agent.lua](https://github.com/svnscha/yaaf/blob/main/examples/weather_agent.lua) shows how to register an additional tool and run the included ReAct agent from a standalone script.
 
 ## Command Modules
@@ -38,7 +32,7 @@ The built-in Lua commands are:
 - `embed`: embedding requests.
 - `doctor`: environment, registry, and MCP diagnostics.
 
-`ask`, `chat`, `agent`, and `run` each accept `--mcp`. The root CLI also accepts `--mcp` for legacy direct script runs.
+`ask`, `chat`, `agent`, and `run` each accept `--mcp`. The root CLI also accepts `--mcp` as a global option.
 
 The command implementation lives in Lua, but the expensive or stateful operations stay native. For example, `ask.lua` parses command options and decides whether tools are enabled, then calls the `llm` and `json` modules. `doctor.lua` is also Lua; it gathers runtime defaults, registries, and MCP config state through public modules.
 

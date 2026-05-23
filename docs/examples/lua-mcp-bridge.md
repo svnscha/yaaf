@@ -3,7 +3,7 @@
 Run a script with an explicit MCP config:
 
 ```powershell
-yaaf --mcp ./configs/hello.mcp.json ./examples/example.lua
+yaaf run --mcp ./configs/hello.mcp.json ./examples/example.lua
 ```
 
 Use the bridge from Lua:

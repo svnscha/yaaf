@@ -192,7 +192,7 @@ Options:
 
 ### `run`
 
-`run` executes a standalone Lua file through the same native runtime used by legacy direct script invocation.
+`run` executes a standalone Lua file through the native script runtime.
 
 ```powershell
 yaaf run ./examples/example.lua one two three

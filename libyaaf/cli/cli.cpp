@@ -393,24 +393,6 @@ std::vector<std::string> collect_script_arguments(const std::vector<std::string>
     return {args.begin() + static_cast<std::ptrdiff_t>(offset), args.end()};
 }
 
-[[nodiscard]] std::optional<std::size_t> find_lua_script_argument(const std::vector<std::string> &args)
-{
-    std::size_t index = 0;
-    while (index < args.size() && args[index] == "--mcp")
-    {
-        if (index + 1 >= args.size())
-        {
-            return std::nullopt;
-        }
-        index += 2;
-    }
-    if (index < args.size() && looks_like_lua_script_path(args[index]))
-    {
-        return index;
-    }
-    return std::nullopt;
-}
-
 [[nodiscard]] std::optional<std::string> validate_explicit_script_path(std::string_view value)
 {
     if (value.empty())
@@ -426,28 +408,6 @@ std::vector<std::string> collect_script_arguments(const std::vector<std::string>
 
     return std::nullopt;
 }
-
-[[nodiscard]] ScriptCommandOptions parse_script_command_options(const std::vector<std::string> &args,
-                                                                std::size_t script_index,
-                                                                std::string_view default_endpoint)
-{
-    ScriptCommandOptions script_options;
-    script_options.endpoint = default_endpoint;
-    script_options.model = std::string(kDefaultOllamaModel);
-    script_options.file = args[script_index];
-
-    for (std::size_t index = 0; index < script_index; ++index)
-    {
-        if (args[index] == "--mcp" && index + 1 < script_index)
-        {
-            script_options.mcp_config_path = absolute_path(args[++index]);
-        }
-    }
-
-    script_options.arguments = collect_script_arguments(args, script_index + 1);
-    return script_options;
-}
-
 int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &global_options, std::istream &input,
                std::ostream &output, const Services *services)
 {
@@ -530,23 +490,19 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
     global_options.http.allow_invalid_proxy_certificates =
         global_options.http.proxy.has_value() && !global_options.http.proxy->empty();
 
-    if (const auto script_index = find_lua_script_argument(args); script_index.has_value())
+    std::size_t legacy_script_index = 0;
+    while (legacy_script_index < args.size() && args[legacy_script_index] == "--mcp")
     {
-        auto script_options = parse_script_command_options(args, *script_index, default_endpoint);
-        if (script_options.mcp_config_path.empty() && !global_options.mcp_config_path.empty())
+        if (legacy_script_index + 1 >= args.size())
         {
-            script_options.mcp_config_path = absolute_path(global_options.mcp_config_path);
+            break;
         }
-
-        try
-        {
-            return run_script(script_options, global_options, input, output, services);
-        }
-        catch (const std::exception &error)
-        {
-            error_output << "yaaf failed: " << error.what() << '\n';
-            return EXIT_FAILURE;
-        }
+        legacy_script_index += 2;
+    }
+    if (legacy_script_index < args.size() && looks_like_lua_script_path(args[legacy_script_index]))
+    {
+        error_output << "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n";
+        return EXIT_FAILURE;
     }
 
     std::reverse(args.begin(), args.end());
