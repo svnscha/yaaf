@@ -35,6 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout vcpkg
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: e5a4f54c0d562059e9ccc6f7e7150667da58fe41
+          path: vcpkg
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
