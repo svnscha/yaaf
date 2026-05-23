@@ -16,6 +16,7 @@ RUN apt-get update \
         build-essential \
         clang-${LLVM_VERSION} \
         clangd-${LLVM_VERSION} \
+        clang-tools-${LLVM_VERSION} \
         cmake \
         git \
         lld-${LLVM_VERSION} \
@@ -33,6 +34,7 @@ RUN apt-get update \
     && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 100 \
     && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 100 \
     && update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-${LLVM_VERSION} 100 \
+    && update-alternatives --install /usr/bin/clang-scan-deps clang-scan-deps /usr/bin/clang-scan-deps-${LLVM_VERSION} 100 \
     && update-alternatives --install /usr/bin/lld lld /usr/bin/lld-${LLVM_VERSION} 100 \
     && update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-${LLVM_VERSION} 100 \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
