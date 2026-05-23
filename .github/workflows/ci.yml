@@ -149,3 +149,45 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.package_dir }}
           if-no-files-found: error
+
+  linux-runtime-compat:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro_name: ubuntu-24.04
+            image: ubuntu:24.04
+          - distro_name: ubuntu-22.04
+            image: ubuntu:22.04
+
+    steps:
+      - name: Download Linux bundle artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: yaaf-linux-ubuntu-amd64
+          path: runtime-smoke/yaaf-linux-ubuntu-amd64
+
+      - name: Verify downloaded Linux bundle
+        shell: bash
+        run: |
+          test -x runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
+          test -d runtime-smoke/yaaf-linux-ubuntu-amd64/lua
+          test -d runtime-smoke/yaaf-linux-ubuntu-amd64/examples
+
+      - name: Smoke test Ubuntu runtime on ${{ matrix.distro_name }}
+        shell: bash
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/runtime-smoke/yaaf-linux-ubuntu-amd64:/bundle:ro" \
+            --workdir /bundle \
+            ${{ matrix.image }} \
+            /bin/bash -lc '
+              set -euo pipefail
+              ./yaaf --help > /tmp/yaaf-help.txt
+              grep -q "Usage:" /tmp/yaaf-help.txt
+              ./yaaf examples/example.lua smoke-test > /tmp/yaaf-example.txt
+              grep -q "yaaf example" /tmp/yaaf-example.txt
+              grep -q "args: smoke-test" /tmp/yaaf-example.txt
+            '
