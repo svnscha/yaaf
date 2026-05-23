@@ -20,7 +20,9 @@ jobs:
             artifact_name: yaaf-win-amd64
             build_dir: build
             package_dir: build\package\yaaf-win-amd64
-            executable: build\app\Release\yaaf.exe
+            executable: build\app\yaaf.exe
+            lua_dir: build\app\lua
+            examples_dir: build\app\examples
             ctest_enabled: false
           - os: macos-latest
             artifact_name: yaaf-macos
@@ -50,6 +52,12 @@ jobs:
       - name: Set up Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
+      - name: Set up MSVC developer shell
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
       - name: Bootstrap vcpkg on Windows
         if: runner.os == 'Windows'
         shell: pwsh
@@ -66,6 +74,7 @@ jobs:
         run: >-
           cmake -S . -B ${{ matrix.build_dir }} -G Ninja
           -DCMAKE_BUILD_TYPE=Release
+          -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Configure CMake on macOS
@@ -93,8 +102,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path '${{ matrix.package_dir }}' -Force | Out-Null
           Copy-Item '${{ matrix.executable }}' '${{ matrix.package_dir }}\yaaf.exe'
-          Copy-Item 'build\app\Release\lua' '${{ matrix.package_dir }}\lua' -Recurse -Force
-          Copy-Item 'build\app\Release\examples' '${{ matrix.package_dir }}\examples' -Recurse -Force
+          Copy-Item '${{ matrix.lua_dir }}' '${{ matrix.package_dir }}\lua' -Recurse -Force
+          Copy-Item '${{ matrix.examples_dir }}' '${{ matrix.package_dir }}\examples' -Recurse -Force
 
       - name: Package bundle on macOS
         if: runner.os == 'macOS'
