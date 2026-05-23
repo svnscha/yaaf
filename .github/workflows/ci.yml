@@ -24,11 +24,21 @@ jobs:
             lua_dir: build\app\lua
             examples_dir: build\app\examples
             ctest_enabled: false
+          - os: ubuntu-latest
+            artifact_name: yaaf-linux-ubuntu-amd64
+            build_dir: build
+            package_dir: build/package/yaaf-linux-ubuntu-amd64
+            executable: build/app/yaaf
+            lua_dir: build/app/lua
+            examples_dir: build/app/examples
+            ctest_enabled: true
           - os: macos-latest
             artifact_name: yaaf-macos
             build_dir: build
             package_dir: build/package/yaaf-macos
             executable: build/app/yaaf
+            lua_dir: build/app/lua
+            examples_dir: build/app/examples
             ctest_enabled: true
 
     runs-on: ${{ matrix.os }}
@@ -58,13 +68,22 @@ jobs:
         with:
           arch: amd64
 
+      - name: Select clang on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo 'CC=clang' >> "$GITHUB_ENV"
+          echo 'CXX=clang++' >> "$GITHUB_ENV"
+          clang --version
+          clang++ --version
+
       - name: Bootstrap vcpkg on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: .\vcpkg\bootstrap-vcpkg.bat
 
-      - name: Bootstrap vcpkg on macOS
-        if: runner.os == 'macOS'
+      - name: Bootstrap vcpkg on non-Windows
+        if: runner.os != 'Windows'
         shell: bash
         run: ./vcpkg/bootstrap-vcpkg.sh
 
@@ -85,14 +104,24 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
+      - name: Configure CMake on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: >-
+          cmake -S . -B ${{ matrix.build_dir }} -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=${{ env.CC }}
+          -DCMAKE_CXX_COMPILER=${{ env.CXX }}
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
       - name: Build yaaf
         run: cmake --build ${{ matrix.build_dir }} --config Release --target yaaf
 
-      - name: Build unit tests on macOS
+      - name: Build unit tests
         if: matrix.ctest_enabled
         run: cmake --build ${{ matrix.build_dir }} --config Release --target libyaaf_tests
 
-      - name: Run unit tests on macOS
+      - name: Run unit tests
         if: matrix.ctest_enabled
         run: ctest --test-dir ${{ matrix.build_dir }} --output-on-failure -L default
 
@@ -105,14 +134,14 @@ jobs:
           Copy-Item '${{ matrix.lua_dir }}' '${{ matrix.package_dir }}\lua' -Recurse -Force
           Copy-Item '${{ matrix.examples_dir }}' '${{ matrix.package_dir }}\examples' -Recurse -Force
 
-      - name: Package bundle on macOS
-        if: runner.os == 'macOS'
+      - name: Package bundle on non-Windows
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir -p '${{ matrix.package_dir }}'
           cp '${{ matrix.executable }}' '${{ matrix.package_dir }}/yaaf'
-          cp -R build/app/lua '${{ matrix.package_dir }}/lua'
-          cp -R build/app/examples '${{ matrix.package_dir }}/examples'
+          cp -R '${{ matrix.lua_dir }}' '${{ matrix.package_dir }}/lua'
+          cp -R '${{ matrix.examples_dir }}' '${{ matrix.package_dir }}/examples'
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v7
