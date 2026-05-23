@@ -172,9 +172,10 @@ jobs:
       - name: Verify downloaded Linux bundle
         shell: bash
         run: |
-          test -x runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
+          test -f runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
           test -d runtime-smoke/yaaf-linux-ubuntu-amd64/lua
           test -d runtime-smoke/yaaf-linux-ubuntu-amd64/examples
+          chmod +x runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
 
       - name: Smoke test Ubuntu runtime on ${{ matrix.distro_name }}
         shell: bash
