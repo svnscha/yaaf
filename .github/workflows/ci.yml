@@ -191,7 +191,7 @@ jobs:
               set -euo pipefail
               ./yaaf --help > /tmp/yaaf-help.txt
               grep -q "Usage:" /tmp/yaaf-help.txt
-              ./yaaf examples/example.lua smoke-test > /tmp/yaaf-example.txt
+              ./yaaf run examples/example.lua smoke-test > /tmp/yaaf-example.txt
               grep -q "yaaf example" /tmp/yaaf-example.txt
               grep -q "args: smoke-test" /tmp/yaaf-example.txt
             ' >"$log_file" 2>&1; then
