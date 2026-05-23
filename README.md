@@ -1,5 +1,10 @@
 # yaaf
 
+[![CI](https://github.com/svnscha/yaaf/actions/workflows/ci.yml/badge.svg)](https://github.com/svnscha/yaaf/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://svnscha.github.io/yaaf/)
+[![GitHub stars](https://img.shields.io/github/stars/svnscha/yaaf?style=social)](https://github.com/svnscha/yaaf/stargazers)
+[![Platforms](https://img.shields.io/badge/platforms-windows%20%7C%20macOS-0a7ea4)](https://github.com/svnscha/yaaf/actions/workflows/ci.yml)
+
 Yaaf is a command-line runtime for small AI workflows in Lua. You can use it as a normal CLI for prompts and chat, wire in local or MCP tools, or run a Lua script that registers its own tools and agents.
 
 The native layer handles startup, HTTP, JSON, and MCP transports. Lua handles commands, tools, agents, and provider logic, so you can start with copyable commands and then grow into custom workflows without changing runtimes.
@@ -14,36 +19,36 @@ The native layer handles startup, HTTP, JSON, and MCP transports. Lua handles co
 
 ## Quick Start
 
-These examples assume yaaf is already built and the build output directory is on `PATH`.
+These examples assume `yaaf` is already built and the build output directory is on `PATH`.
 
 Ask a quick question:
 
 ```powershell
-yaaf.exe ask "Explain RAII in one sentence."
+yaaf ask "Explain RAII in one sentence."
 ```
 
 Open a short chat:
 
 ```powershell
-yaaf.exe chat "Reply with one short greeting."
+yaaf chat "Reply with one short greeting."
 ```
 
 Stream output as it arrives:
 
 ```powershell
-yaaf.exe ask --stream "Write a haiku about C++."
+yaaf ask --stream "Write a haiku about C++."
 ```
 
 Request JSON output for automation:
 
 ```powershell
-yaaf.exe ask --format json --pretty "Return a JSON object with answer equal to 2."
+yaaf ask --format json --pretty "Return a JSON object with answer equal to 2."
 ```
 
 Inspect your current runtime configuration:
 
 ```powershell
-yaaf.exe doctor --format json --pretty
+yaaf doctor --format json --pretty
 ```
 
 ## Simple Real-World Examples
@@ -51,39 +56,39 @@ yaaf.exe doctor --format json --pretty
 Use a local script to add a tiny custom tool and run an agent:
 
 ```powershell
-yaaf.exe ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
+yaaf ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
 ```
 
 Use the built-in echo tool to verify agent tool wiring before involving external services:
 
 ```powershell
-yaaf.exe agent --name react --tool echo "Use the echo tool to repeat hello."
+yaaf agent --name react --tool echo "Use the echo tool to repeat hello."
 ```
 
 Point yaaf at an explicit MCP config and call a remote tool:
 
 ```powershell
-yaaf.exe ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps."
+yaaf ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps."
 ```
 
 Run a Lua script directly when you want full control over the workflow:
 
 ```powershell
-yaaf.exe ./examples/example.lua one two three
+yaaf ./examples/example.lua one two three
 ```
 
 ## Start Here
 
-- [Usage](docs/usage.md): build output, environment variables, command reference, embeddings, and proxy setup.
-- [Examples](docs/examples/index.md): copyable CLI, Lua, ReAct, and MCP examples.
-- [Lua Runtime](docs/lua.md): how command modules and direct scripts are discovered and run.
-- [Lua API Reference](docs/modules/index.md): built-in runtime modules such as `llm`, `tool`, `agent`, and `mcp`.
-- [MCP Tools](docs/mcp.md): explicit MCP config paths, supported config shape, and tool naming.
-- [Tool Reference](docs/tools/index.md): built-in tools and custom tool authoring.
+- [Usage](https://svnscha.github.io/yaaf/usage/): build output, environment variables, command reference, embeddings, and proxy setup.
+- [Examples](https://svnscha.github.io/yaaf/examples/): copyable CLI, Lua, ReAct, and MCP examples.
+- [Lua Runtime](https://svnscha.github.io/yaaf/lua/): how command modules and direct scripts are discovered and run.
+- [Lua API Reference](https://svnscha.github.io/yaaf/modules/): built-in runtime modules such as `llm`, `tool`, `agent`, and `mcp`.
+- [MCP Tools](https://svnscha.github.io/yaaf/mcp/): explicit MCP config paths, supported config shape, and tool naming.
+- [Tool Reference](https://svnscha.github.io/yaaf/tools/): built-in tools and custom tool authoring.
 
 ## Build And Detailed Setup
 
-Build, environment setup, executable locations, and command reference live in [docs/usage.md](docs/usage.md). The full documentation index is at [docs/index.md](docs/index.md).
+Build, environment setup, executable locations, and command reference live in [Usage](https://svnscha.github.io/yaaf/usage/). The full documentation index is at [https://svnscha.github.io/yaaf/](https://svnscha.github.io/yaaf/).
 
 Serve the docs locally with MkDocs:
 
