@@ -29,6 +29,7 @@ set(libyaaf_docker_integration_sources
 add_executable(libyaaf_tests
   integration/http_client_tests.cpp
   integration/mcp_client_tests.cpp
+  integration/mcp_fixture_tests.cpp
   mock/agent_tests.cpp
   mock/cli_agent_command_tests.cpp
   mock/cli_ask_command_tests.cpp
