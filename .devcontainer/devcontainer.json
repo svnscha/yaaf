@@ -11,7 +11,7 @@
         "CXX": "clang++",
         "VCPKG_ROOT": "${containerWorkspaceFolder}/vcpkg"
     },
-    "postCreateCommand": "./vcpkg/bootstrap-vcpkg.sh",
+    "postCreateCommand": "bash ./.devcontainer/setup-vcpkg.sh",
     "customizations": {
         "vscode": {
             "extensions": [
