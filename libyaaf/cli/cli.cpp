@@ -56,6 +56,14 @@ struct GlobalOptions
     std::string mcp_config_path;
 };
 
+struct RunCommandOptions
+{
+    std::string file;
+    std::vector<std::string> arguments;
+    std::string mcp_config_path;
+    CLI::App *app = nullptr;
+};
+
 [[nodiscard]] std::filesystem::path absolute_path(const std::filesystem::path &path)
 {
     return path.empty() || path.is_absolute() ? path : std::filesystem::absolute(path);
@@ -354,7 +362,7 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
     return nullptr;
 }
 
-bool is_lua_script_path(const std::string &value)
+bool looks_like_lua_script_path(const std::string &value)
 {
     if (value.empty() || value.front() == '-')
     {
@@ -362,7 +370,17 @@ bool is_lua_script_path(const std::string &value)
     }
 
     const std::filesystem::path path{value};
-    return path.extension() == ".lua" && std::filesystem::exists(path);
+    return path.extension() == ".lua";
+}
+
+[[nodiscard]] std::vector<std::string> normalize_script_arguments(std::vector<std::string> arguments)
+{
+    if (!arguments.empty() && arguments.front() == "--")
+    {
+        arguments.erase(arguments.begin());
+    }
+
+    return arguments;
 }
 
 std::vector<std::string> collect_script_arguments(const std::vector<std::string> &args, std::size_t offset)
@@ -386,10 +404,26 @@ std::vector<std::string> collect_script_arguments(const std::vector<std::string>
         }
         index += 2;
     }
-    if (index < args.size() && is_lua_script_path(args[index]))
+    if (index < args.size() && looks_like_lua_script_path(args[index]))
     {
         return index;
     }
+    return std::nullopt;
+}
+
+[[nodiscard]] std::optional<std::string> validate_explicit_script_path(std::string_view value)
+{
+    if (value.empty())
+    {
+        return std::string("run requires a Lua script path");
+    }
+
+    const std::filesystem::path path{value};
+    if (path.extension() != ".lua")
+    {
+        return std::string("run requires a .lua script path");
+    }
+
     return std::nullopt;
 }
 
@@ -524,6 +558,7 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
     std::string request_body;
     std::string content_type = "application/json";
     bool pretty = false;
+    RunCommandOptions run_command;
     auto lua_commands = discover_lua_commands(default_endpoint, kDefaultOllamaModel, global_options.http);
 
     auto *get_option = app.add_option("--get", get_url, "Run an HTTP GET against the given URL");
@@ -536,6 +571,11 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
         ->default_str(global_options.http.proxy.value_or(""));
     app.add_option("--mcp", global_options.mcp_config_path, "Path to the MCP server configuration file");
     app.add_flag("--pretty", pretty, "Pretty-print the JSON output");
+
+    run_command.app = app.add_subcommand("run", "Run a standalone Lua script");
+    run_command.app->add_option("--mcp", run_command.mcp_config_path, "Path to the MCP server configuration file");
+    run_command.app->add_option("file", run_command.file, "Lua script path")->required();
+    run_command.app->add_option("args", run_command.arguments, "Arguments passed to the Lua script");
 
     register_lua_commands(app, lua_commands);
 
@@ -552,8 +592,9 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
         global_options.http.proxy.has_value() && !global_options.http.proxy->empty();
 
     auto *lua_command = parsed_lua_command(lua_commands);
+    const bool run_command_selected = run_command.app != nullptr && run_command.app->parsed();
 
-    if (!get_url && !post_url && lua_command == nullptr)
+    if (!get_url && !post_url && lua_command == nullptr && !run_command_selected)
     {
         output << app.help();
         return EXIT_SUCCESS;
@@ -561,6 +602,31 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
 
     try
     {
+        if (run_command_selected)
+        {
+            if (const auto validation_error = validate_explicit_script_path(run_command.file);
+                validation_error.has_value())
+            {
+                error_output << "yaaf failed: " << *validation_error << '\n';
+                return EXIT_FAILURE;
+            }
+
+            ScriptCommandOptions script_options;
+            script_options.endpoint = default_endpoint;
+            script_options.model = std::string(kDefaultOllamaModel);
+            script_options.file = run_command.file;
+            script_options.arguments = normalize_script_arguments(run_command.arguments);
+            if (!run_command.mcp_config_path.empty())
+            {
+                script_options.mcp_config_path = absolute_path(run_command.mcp_config_path);
+            }
+            else if (!global_options.mcp_config_path.empty())
+            {
+                script_options.mcp_config_path = absolute_path(global_options.mcp_config_path);
+            }
+            return run_script(script_options, global_options, input, output, services);
+        }
+
         if (lua_command != nullptr)
         {
             ScriptCommandOptions script_options;

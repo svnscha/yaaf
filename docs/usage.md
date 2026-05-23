@@ -190,6 +190,22 @@ Options:
 | `--format json` | Emit the diagnostic report as JSON. |
 | `--pretty` | Pretty-print JSON output. |
 
+### `run`
+
+`run` executes a standalone Lua file through the same native runtime used by legacy direct script invocation.
+
+```powershell
+yaaf run ./examples/example.lua one two three
+```
+
+Options:
+
+| Option | Purpose |
+| --- | --- |
+| `--mcp <path>` | Load MCP tools from an explicit config path for this script run. |
+| `<file.lua>` | Path to the standalone Lua script to execute. Required. |
+| `[args...]` | Positional arguments exposed to the script as `yaaf.args`. |
+
 ## Common Workflows
 
 Basic ask:
@@ -234,6 +250,12 @@ Use a different model:
 
 ```powershell
 yaaf ask --model qwen3:0.6b "Summarize RAII in one sentence."
+```
+
+Run a standalone Lua script:
+
+```powershell
+yaaf run ./examples/example.lua one two three
 ```
 
 ## Embeddings

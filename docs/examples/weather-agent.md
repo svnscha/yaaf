@@ -5,7 +5,7 @@ This guide builds the included weather example from [examples/weather_agent.lua]
 Run the complete example:
 
 ```powershell
-yaaf ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
+yaaf run ./examples/weather_agent.lua "Use the weather tool to tell me the weather in Berlin."
 ```
 
 ## Step 1: Load Runtime Modules
