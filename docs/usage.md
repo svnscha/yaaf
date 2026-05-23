@@ -2,13 +2,25 @@
 
 ## Build
 
-Build requirements on macOS:
+Build requirements:
+
+macOS:
 
 - Xcode Command Line Tools
 - CMake 3.21 or newer
 - Ninja
 - pkg-config
 - Git
+- vcpkg checked out locally with `VCPKG_ROOT` set
+
+Ubuntu Linux:
+
+- A C++20-capable toolchain such as `build-essential`
+- CMake 3.21 or newer
+- Ninja (`ninja-build`)
+- `pkg-config`
+- Git
+- `zip`, `unzip`, `tar`, and `curl`
 - vcpkg checked out locally with `VCPKG_ROOT` set
 
 Recommended setup:
@@ -22,7 +34,19 @@ git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
 export VCPKG_ROOT="$HOME/vcpkg"
 ```
 
+Ubuntu Linux setup:
+
+```sh
+sudo apt update
+sudo apt install -y build-essential cmake ninja-build pkg-config git zip unzip tar curl
+git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
+"$HOME/vcpkg/bootstrap-vcpkg.sh"
+export VCPKG_ROOT="$HOME/vcpkg"
+```
+
 If you use VS Code with CMake Tools, either start VS Code from a shell where `VCPKG_ROOT` is already exported, or set `cmake.configureEnvironment.VCPKG_ROOT` to the same path.
+
+Contributors on Linux should use the same CMake plus vcpkg path used by the Ubuntu CI job and the Linux devcontainer.
 
 Configure and build with CMake and the vcpkg toolchain:
 
@@ -37,6 +61,8 @@ Typical output paths are:
 build/app/yaaf
 build/app/Debug/yaaf
 ```
+
+On Linux, the normal contributor executable path is `build/app/yaaf`. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution. The current CI runtime smoke checks pass on Ubuntu 24.04 and record the expected Ubuntu 22.04 failure caused by newer glibc/libstdc++ requirements in the packaged binary.
 
 The build also copies `lua/` and `examples/` next to the executable, so the app can discover its Lua command modules and run included examples from the executable directory.
 

@@ -30,7 +30,7 @@ find_package(CLI11 CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(Lua REQUIRED)
 
-if(APPLE)
+if(NOT WIN32)
   include(CTest)
 endif()
 

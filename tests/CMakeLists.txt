@@ -29,6 +29,7 @@ set(libyaaf_docker_integration_sources
 add_executable(libyaaf_tests
   integration/http_client_tests.cpp
   integration/mcp_client_tests.cpp
+  integration/mcp_fixture_tests.cpp
   mock/agent_tests.cpp
   mock/cli_agent_command_tests.cpp
   mock/cli_ask_command_tests.cpp
@@ -67,7 +68,7 @@ if(NOT WIN32)
   configure_yaaf_test_target(libyaaf_docker_integration_tests)
 endif()
 
-if(APPLE)
+if(NOT WIN32)
   add_test(NAME libyaaf_tests COMMAND libyaaf_tests)
   add_test(NAME libyaaf_ollama_integration_tests COMMAND libyaaf_ollama_integration_tests)
   add_test(NAME libyaaf_docker_integration_tests COMMAND libyaaf_docker_integration_tests)

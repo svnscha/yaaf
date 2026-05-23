@@ -18,6 +18,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsRealUvStdioServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
+    options.config_path = workspace / ".vscode" / "mcp.json";
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
@@ -87,7 +88,7 @@ TEST(McpFixtureIntegrationTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConf
     EXPECT_EQ(chat_call_count, 2U);
     EXPECT_EQ(output.str(), "tool: hello.hello {\"name\":\"MCP\"}\n"
                             "observation: Hello, MCP!\n"
-                            "yaaf: The MCP server said hello.\n");
+                            "assistant: The MCP server said hello.\n");
 }
 
 TEST(McpFixtureIntegrationTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceConfig)
@@ -149,9 +150,9 @@ TEST(McpFixtureIntegrationTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceCon
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(chat_call_count, 2U);
-    EXPECT_EQ(output.str(), "user: tool: hello.repeat {\"count\":3.0,\"text\":\"hi\"}\n"
+    EXPECT_EQ(output.str(), "user: tool: hello.repeat {\"count\":3,\"text\":\"hi\"}\n"
                             "observation: hi hi hi\n"
-                            "yaaf: Repeated through MCP.\n"
+                            "assistant: Repeated through MCP.\n"
                             "user: ");
 }
 
@@ -218,10 +219,10 @@ TEST(McpFixtureIntegrationTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceCo
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(chat_call_count, 2U);
     EXPECT_EQ(output.str(), "thought: I should ask the MCP server to repeat the text.\n"
-                            "tool: hello.repeat {\"count\":3.0,\"text\":\"hi\"}\n"
+                            "tool: hello.repeat {\"count\":3,\"text\":\"hi\"}\n"
                             "observation: hi hi hi\n"
                             "thought: The MCP tool returned the repeated text.\n"
-                            "yaaf: hi hi hi\n");
+                            "assistant: hi hi hi\n");
 }
 
 TEST(McpFixtureIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
@@ -269,6 +270,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedHttpServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
+    options.config_path = workspace / ".vscode" / "mcp.json";
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
@@ -289,6 +291,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedSseServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
+    options.config_path = workspace / ".vscode" / "mcp.json";
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");

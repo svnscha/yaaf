@@ -18,7 +18,7 @@ Supported server types:
 
 - `http`: JSON-RPC over HTTP POST.
 - `sse`: accepted as an HTTP-style server entry; `text/event-stream` responses are parsed for `data:` payloads.
-- `stdio`: JSON-RPC over newline-delimited stdio on Windows and macOS builds.
+- `stdio`: JSON-RPC over newline-delimited stdio on Windows, macOS, and Linux builds.
 
 Supported server fields:
 
@@ -53,6 +53,8 @@ Minimal stdio server:
   }
 }
 ```
+
+For the repository fixture servers, Linux uses the same `uv`-based stdio setup as macOS. There are no extra Linux-only stdio fixture prerequisites beyond having `uv` available.
 
 ## Variable Substitution
 

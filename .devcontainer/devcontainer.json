@@ -1,0 +1,40 @@
+{
+    "name": "yaaf Linux clang",
+    "build": {
+        "context": "..",
+        "dockerfile": "Dockerfile"
+    },
+    "remoteUser": "vscode",
+    "containerEnv": {
+        "CC": "clang",
+        "CMAKE_TOOLCHAIN_FILE": "${containerWorkspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "CXX": "clang++",
+        "VCPKG_ROOT": "${containerWorkspaceFolder}/vcpkg"
+    },
+    "postCreateCommand": "bash ./.devcontainer/setup-vcpkg.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "llvm-vs-code-extensions.vscode-clangd",
+                "ms-python.python",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools",
+                "twxs.cmake"
+            ],
+            "settings": {
+                "cmake.buildDirectory": "${workspaceFolder}/build",
+                "cmake.configureArgs": [
+                    "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+                ],
+                "cmake.configureEnvironment": {
+                    "CC": "clang",
+                    "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                    "CXX": "clang++",
+                    "VCPKG_ROOT": "${workspaceFolder}/vcpkg"
+                },
+                "cmake.configureOnOpen": true,
+                "cmake.generator": "Ninja"
+            }
+        }
+    }
+}

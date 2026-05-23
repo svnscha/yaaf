@@ -10,6 +10,8 @@ uv --directory ./mcp-servers run python hello_http.py --host 127.0.0.1 --port 39
 uv --directory ./mcp-servers run python hello_sse.py --host 127.0.0.1 --port 39232
 ```
 
+Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra Linux-only prerequisites for the stdio fixture tests beyond having `uv` available.
+
 The HTTP and SSE fixtures are also included in the mitmproxy Docker Compose stack used by local integration tests:
 
 ```powershell
