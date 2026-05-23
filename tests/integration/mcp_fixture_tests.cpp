@@ -247,8 +247,9 @@ print(result.content)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run(
-        {"--mcp", (workspace / ".vscode" / "mcp.json").string(), script_path.string()}, input, output, error_output);
+    const auto exit_code =
+        yaaf::cli::run({"run", "--mcp", (workspace / ".vscode" / "mcp.json").string(), script_path.string()}, input,
+                       output, error_output);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
@@ -296,4 +297,3 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedSseServer)
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
-

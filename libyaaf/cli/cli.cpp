@@ -501,7 +501,8 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
     }
     if (legacy_script_index < args.size() && looks_like_lua_script_path(args[legacy_script_index]))
     {
-        error_output << "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n";
+        error_output
+            << "yaaf failed: direct Lua script invocation has been removed; use 'yaaf run <file.lua> [args...]'\n";
         return EXIT_FAILURE;
     }
 

@@ -123,7 +123,7 @@ TEST(ScriptLuaTests, RunsLuaFileWithLlmOllamaProviderChat)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -166,7 +166,7 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredLlmChatModule)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -240,7 +240,7 @@ TEST(ScriptLuaTests, LlmOllamaProviderSupportsToolsAndToolCalls)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -265,7 +265,7 @@ TEST(ScriptLuaTests, ExposesStandaloneJsonHelpers)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -290,7 +290,7 @@ TEST(ScriptLuaTests, JsonHelpersEncodeNilAndNumericObjectKeys)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -313,7 +313,7 @@ TEST(ScriptLuaTests, JsonHelpersPreserveIntegerValues)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -342,7 +342,7 @@ TEST(ScriptLuaTests, JsonHelpersReportUnsupportedValuesAndInvalidKeys)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -415,7 +415,7 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredLlmGenerateAndEmbedModule)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -504,7 +504,7 @@ TEST(ScriptLuaTests, LlmModuleRegistersLuaProviderCallbacks)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -534,7 +534,7 @@ TEST(ScriptLuaTests, BuiltInEchoProviderMirrorsInputs)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -556,7 +556,7 @@ TEST(ScriptLuaTests, DirectLlmCallsRequireExplicitProvider)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
 
     std::filesystem::remove(script_path);
 
@@ -636,7 +636,7 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredHttpModule)
     std::ostringstream output;
     std::ostringstream error_output;
 
-    const auto exit_code = yaaf::cli::run({script_path.string()}, input, output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
 
     std::filesystem::remove(script_path);
 
@@ -644,4 +644,3 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredHttpModule)
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "200\njson\n201\nchunk-stream\nok\n");
 }
-
