@@ -33,26 +33,26 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout vcpkg
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: microsoft/vcpkg
           ref: e5a4f54c0d562059e9ccc6f7e7150667da58fe41
           path: vcpkg
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: requirements-docs.txt
 
       - name: Set up Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
+        uses: seanmiddleditch/gha-setup-ninja@v6
 
       - name: Install docs dependencies
         run: python -m pip install -r requirements-docs.txt
