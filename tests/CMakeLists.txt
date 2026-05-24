@@ -16,6 +16,18 @@ function(configure_yaaf_test_target target_name)
       GTest::gtest_main
       nlohmann_json::nlohmann_json
   )
+
+  # The runtime resolves bundled Lua modules relative to the executable directory.
+  # Mirror the production `yaaf` POST_BUILD copy so tests find `require("yaaf")` and
+  # the bundled `lua/cli/*` command modules next to their own test binary.
+  add_custom_command(TARGET ${target_name} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf
+      "$<TARGET_FILE_DIR:${target_name}>/lua"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_SOURCE_DIR}/lua"
+      "$<TARGET_FILE_DIR:${target_name}>/lua"
+    COMMENT "Copying Lua runtime next to ${target_name}"
+  )
 endfunction()
 
 set(libyaaf_ollama_integration_sources

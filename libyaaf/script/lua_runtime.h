@@ -19,6 +19,14 @@ struct LuaRuntimeOptions
     nlohmann::json options = nlohmann::json::object();
     nlohmann::json positionals = nlohmann::json::object();
     std::filesystem::path workspace_root;
+    /**
+     * Optional override for the directory that contains the bundled `lua/` runtime tree.
+     *
+     * When empty, the runtime resolves bundled modules relative to the executable
+     * directory (`yaaf::platform::executable_directory()`). Tests and embedders that
+     * point at a different layout can set this explicitly.
+     */
+    std::filesystem::path runtime_root;
     std::filesystem::path mcp_config_path;
     HttpClient::Options http;
     std::istream *input = nullptr;

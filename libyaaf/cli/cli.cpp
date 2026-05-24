@@ -3,6 +3,7 @@
 #include <CLI/CLI.hpp>
 
 #include "../config/dotenv.h"
+#include "../platform/executable_path.h"
 #include "../script/lua_runtime.h"
 
 namespace yaaf::cli
@@ -172,7 +173,13 @@ HttpClient::Response run_post(std::string_view url, std::string_view body, std::
                                                             const HttpClient::Options &http_options)
 {
     std::vector<LuaCommand> commands;
-    const std::filesystem::path script_directory{"lua/cli"};
+
+    // Built-in command modules are bundled under `lua/cli/` next to the executable. The
+    // build copies them on POST_BUILD so deployed binaries do not depend on the caller's
+    // current working directory.
+    const auto executable_directory = yaaf::platform::executable_directory();
+    const std::filesystem::path script_directory =
+        executable_directory.empty() ? std::filesystem::path{"lua/cli"} : executable_directory / "lua" / "cli";
     if (!std::filesystem::exists(script_directory) || !std::filesystem::is_directory(script_directory))
     {
         return commands;

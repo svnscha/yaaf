@@ -25,6 +25,7 @@ target_sources(libyaaf
     ${LIBYAAF_MCP_PLATFORM_SOURCES}
     mcp/mcp_schema_generated.cpp
     ${MCP_SCHEMA_SOURCES}
+    platform/executable_path.cpp
     script/lua_runtime.cpp
     script/modules/agent.cpp
     script/modules/lua_module_utils.cpp
