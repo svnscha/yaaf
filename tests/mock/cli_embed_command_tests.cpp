@@ -54,6 +54,7 @@ TEST(CliEmbedCommandTests, HelpIsServedByNativeCliMetadata)
     EXPECT_NE(output.str().find("Generate embeddings for one or more input texts"), std::string::npos);
     EXPECT_NE(output.str().find("POSITIONALS"), std::string::npos);
     EXPECT_NE(output.str().find("OPTIONS"), std::string::npos);
+    EXPECT_NE(output.str().find("--provider"), std::string::npos);
     EXPECT_NE(output.str().find("--endpoint"), std::string::npos);
     EXPECT_NE(output.str().find("--model"), std::string::npos);
     EXPECT_NE(output.str().find("--format"), std::string::npos);
@@ -149,5 +150,60 @@ TEST(CliEmbedCommandTests, RejectsNonJsonFormat)
     EXPECT_FALSE(embed_called);
     EXPECT_TRUE(output.str().empty());
     EXPECT_NE(error_output.str().find("embed only supports --format json"), std::string::npos);
+}
+
+
+
+TEST(CliEmbedCommandTests, OpenAiProviderUsesEmbeddingsEndpoint)
+{
+    std::string captured_body;
+    HttpClient::Headers captured_headers;
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/embeddings");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(on_response_chunk, nullptr);
+        captured_body = std::string(body);
+        captured_headers = headers;
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"model", "text-embedding-3-small"},
+                                       {"data", {{{"index", 0}, {"embedding", {0.1, 0.2, 0.3}}}}},
+                                       {"usage", {{"prompt_tokens", 4}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"embed", "--provider", "openai", "--endpoint", "http://openai.test/v1",
+                                           "--model", "text-embedding-3-small", "--dimensions", "64",
+                                           "hello world"},
+                                          input, output, error_output, &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(captured_headers.size(), 1U);
+    if (!captured_headers.empty())
+    {
+        EXPECT_EQ(captured_headers.front().first, "Accept");
+        EXPECT_EQ(captured_headers.front().second, "application/json");
+    }
+
+    const auto request_payload = nlohmann::json::parse(captured_body, nullptr, false);
+    ASSERT_FALSE(request_payload.is_discarded());
+    EXPECT_EQ(request_payload.at("model"), "text-embedding-3-small");
+    EXPECT_EQ(request_payload.at("input"), "hello world");
+    EXPECT_EQ(request_payload.at("dimensions"), 64);
+
+    const auto response_payload = parse_json_output(output);
+    EXPECT_EQ(response_payload.at("model"), "text-embedding-3-small");
+    EXPECT_EQ(response_payload.at("prompt_eval_count"), 4);
 }
 

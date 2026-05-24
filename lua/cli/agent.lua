@@ -6,6 +6,7 @@ local available_agents = table.concat(agent_registry.names(), ", ")
 local function run(command)
     local options = command.options
     local agent = agent_registry.create(options.name, {
+        provider = options.provider,
         endpoint = options.endpoint,
         model = options.model,
         think = options.think,
@@ -23,6 +24,12 @@ return yaaf.command({
             flags = { "--name" },
             description = "Agent implementation to run; currently supported: " .. available_agents,
             required = true,
+        },
+        {
+            name = "provider",
+            flags = { "--provider" },
+            description = "Provider used by this command",
+            default = "ollama",
         },
         {
             name = "endpoint",

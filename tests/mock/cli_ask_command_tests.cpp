@@ -49,6 +49,7 @@ TEST(CliAskCommandTests, HelpListsAskOnlyOptions)
     EXPECT_NE(output.str().find("POSITIONALS"), std::string::npos);
     EXPECT_NE(output.str().find("OPTIONS"), std::string::npos);
     EXPECT_NE(output.str().find("prompt"), std::string::npos);
+    EXPECT_NE(output.str().find("--provider"), std::string::npos);
     EXPECT_NE(output.str().find("--endpoint"), std::string::npos);
     EXPECT_NE(output.str().find("--model"), std::string::npos);
     EXPECT_NE(output.str().find("--stream"), std::string::npos);
@@ -75,6 +76,7 @@ TEST(CliAskCommandTests, HelpIsServedByNativeCliMetadata)
     EXPECT_NE(output.str().find("POSITIONALS"), std::string::npos);
     EXPECT_NE(output.str().find("OPTIONS"), std::string::npos);
     EXPECT_NE(output.str().find("Prompt to send to the selected model"), std::string::npos);
+    EXPECT_NE(output.str().find("--provider"), std::string::npos);
     EXPECT_NE(output.str().find("--endpoint"), std::string::npos);
     EXPECT_NE(output.str().find("--model"), std::string::npos);
     EXPECT_NE(output.str().find("--stream"), std::string::npos);
@@ -324,10 +326,12 @@ TEST(CliAskCommandTests, JsonOutputIncludesThinkingWhenThinkIsEnabled)
     const auto exit_code = yaaf::cli::run({"ask", "--format", "json", "--pretty", "--think", "low", "Question"}, input,
                                           output, error_output, &services);
 
-    EXPECT_EQ(exit_code, EXIT_SUCCESS);
-    EXPECT_TRUE(error_output.str().empty());
+    ASSERT_EQ(exit_code, EXIT_SUCCESS) << error_output.str();
+    ASSERT_TRUE(error_output.str().empty());
 
-    const auto payload = parse_json_output(output);
+    const auto output_payload = output.str();
+    const auto payload = nlohmann::json::parse(output_payload, nullptr, false);
+    ASSERT_FALSE(payload.is_discarded()) << output_payload;
     EXPECT_EQ(payload.at("response"), "ok");
     EXPECT_EQ(payload.at("thinking"), "kept private");
 }
@@ -627,3 +631,110 @@ TEST(CliAskCommandTests, StreamPrintsResponseWhenOnlyFinalMessageIsAvailable)
     EXPECT_EQ(output.str(), "thinking: reasoning\nassistant: Rayleigh scattering\n");
 }
 
+
+
+TEST(CliAskCommandTests, OpenAiProviderUsesChatCompletionsForAsk)
+{
+    std::string captured_body;
+    HttpClient::Headers captured_headers;
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/chat/completions");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(on_response_chunk, nullptr);
+        captured_body = std::string(body);
+        captured_headers = headers;
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"id", "chatcmpl-test"},
+                                       {"model", "gpt-4o-mini"},
+                                       {"created", 1712345678},
+                                       {"choices",
+                                        {{{"index", 0},
+                                          {"finish_reason", "stop"},
+                                          {"message", {{"role", "assistant"}, {"content", "{\"answer\":\"ok\"}"}}}}}},
+                                       {"usage", {{"prompt_tokens", 7}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run(
+        {"ask", "--provider", "openai", "--endpoint", "http://openai.test/v1", "--model", "gpt-4o-mini",
+         "--format", "json", "Question"},
+        input, output, error_output, &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(captured_headers.size(), 1U);
+    if (!captured_headers.empty())
+    {
+        EXPECT_EQ(captured_headers.front().first, "Accept");
+        EXPECT_EQ(captured_headers.front().second, "application/json");
+    }
+
+    const auto request_payload = nlohmann::json::parse(captured_body, nullptr, false);
+    ASSERT_FALSE(request_payload.is_discarded());
+    EXPECT_EQ(request_payload.at("model"), "gpt-4o-mini");
+    EXPECT_FALSE(request_payload.at("stream"));
+    ASSERT_EQ(request_payload.at("messages").size(), 1U);
+    EXPECT_EQ(request_payload.at("messages").at(0).at("role"), "user");
+    EXPECT_EQ(request_payload.at("messages").at(0).at("content"), "Question");
+    EXPECT_EQ(request_payload.at("response_format").at("type"), "json_object");
+
+    const auto response_payload = parse_json_output(output);
+    EXPECT_EQ(response_payload.at("answer"), "ok");
+}
+
+TEST(CliAskCommandTests, OpenAiProviderMapsThinkingToReasoningEffortForAsk)
+{
+    std::string captured_body;
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/chat/completions");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(on_response_chunk, nullptr);
+        EXPECT_EQ(headers.size(), 1U);
+        captured_body = std::string(body);
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"id", "chatcmpl-test"},
+                                       {"model", "gpt-4o-mini"},
+                                       {"created", 1712345678},
+                                       {"choices",
+                                        {{{"index", 0},
+                                          {"finish_reason", "stop"},
+                                          {"message", {{"role", "assistant"}, {"content", "ok"}}}}}},
+                                       {"usage", {{"prompt_tokens", 7}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"ask", "--provider", "openai", "--endpoint", "http://openai.test/v1", "--model",
+                        "gpt-4o-mini", "--think", "low", "Question"},
+                       input, output, error_output, &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+
+    const auto request_payload = nlohmann::json::parse(captured_body, nullptr, false);
+    ASSERT_FALSE(request_payload.is_discarded());
+    EXPECT_EQ(request_payload.at("reasoning_effort"), "low");
+    EXPECT_EQ(output.str(), "assistant: ok\n");
+}

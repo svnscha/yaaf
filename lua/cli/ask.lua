@@ -2,7 +2,10 @@ local yaaf = require("yaaf")
 local json = require("json")
 local llm = require("llm")
 local tool_registry = require("tool")
-local ollama = llm.create("ollama")
+
+local function selected_client(options)
+    return llm.create(options.provider or "ollama")
+end
 
 local function starts_with_json(text)
     local trimmed = text:match("^%s*(.-)%s*$")
@@ -61,13 +64,13 @@ local function write_tool_result(tool_name, arguments, result)
     yaaf.write("observation: " .. (result.content or "") .. "\n")
 end
 
-local function run_chat_with_tools(options, prompt, format, emit_tool_results)
+local function run_chat_with_tools(client, options, prompt, format, emit_tool_results)
     local tool_names = options.tool or {}
     local tool_specs = tool_registry.specs(tool_names)
     local messages = { { role = "user", content = prompt } }
 
     for _ = 1, 10 do
-        local response = ollama.chat({
+        local response = client.chat({
             endpoint = options.endpoint,
             model = options.model,
             messages = messages,
@@ -98,6 +101,7 @@ end
 
 local function run(command)
     local options = command.options
+    local client = selected_client(options)
     local format = parse_format(options.format)
     if options.pretty and format ~= "json" then
         error("--pretty is only supported with --format json for ask")
@@ -126,7 +130,7 @@ local function run(command)
     end
 
     if #tool_names > 0 then
-        local response = run_chat_with_tools(options, prompt, request_format, format ~= "json")
+        local response = run_chat_with_tools(client, options, prompt, request_format, format ~= "json")
         local message = response.message or {}
         if format == "json" then
             print(json.encode(build_json_output({ response = message.content or "", thinking = message.thinking }, should_wrap_thinking_json), options.pretty))
@@ -166,7 +170,7 @@ local function run(command)
         end
     end
 
-    local response = ollama.generate({
+    local response = client.generate({
         endpoint = options.endpoint,
         model = options.model,
         prompt = prompt,
@@ -208,6 +212,13 @@ end
 return yaaf.command({
     description = "Ask the configured model a question",
     options = {
+        {
+            name = "provider",
+            flags = { "--provider" },
+            type = "string",
+            default = "ollama",
+            description = "Provider used by this command",
+        },
         {
             name = "endpoint",
             flags = { "--endpoint" },

@@ -29,6 +29,13 @@ Ask a quick question:
 yaaf ask "Explain RAII in one sentence."
 ```
 
+Ask through an OpenAI-compatible endpoint:
+
+```powershell
+$env:YAAF_OPENAI_API_KEY = "sk-example"
+yaaf ask --provider openai --model gpt-4o-mini "Explain RAII in one sentence."
+```
+
 Open a short chat:
 
 ```powershell

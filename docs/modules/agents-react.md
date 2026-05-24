@@ -26,4 +26,4 @@ local react = require("agents.react")
 - `react.parse_response(text)`: parses the expected ReAct JSON response shape.
 - `react.response_schema()`: returns the JSON schema requested from the model.
 
-`react.new` accepts `endpoint`, `model`, `think`, `max_turns`, and `tools`. The returned agent exposes `agent:run(input)`, which emits trace lines and returns `{ content, tool_results, turns, metadata }`.
+`react.new` accepts `provider`, `endpoint`, `model`, `think`, `max_turns`, and `tools`. The returned agent exposes `agent:run(input)`, which emits trace lines and returns `{ content, tool_results, turns, metadata }`.

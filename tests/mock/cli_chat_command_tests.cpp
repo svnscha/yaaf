@@ -15,6 +15,7 @@ TEST(CliChatCommandTests, HelpOmitsFormatOption)
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
+    EXPECT_NE(output.str().find("--provider"), std::string::npos);
     EXPECT_NE(output.str().find("--endpoint"), std::string::npos);
     EXPECT_NE(output.str().find("--model"), std::string::npos);
     EXPECT_NE(output.str().find("--stream"), std::string::npos);
@@ -154,5 +155,61 @@ TEST(CliChatCommandTests, WithToolRunsToolLoop)
                             "observation: hello\n"
                             "assistant: hello\n"
                             "user: ");
+}
+
+
+
+TEST(CliChatCommandTests, OpenAiProviderStreamsChatCompletions)
+{
+    std::string captured_body;
+    HttpClient::Headers captured_headers;
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/chat/completions");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_NE(on_response_chunk, nullptr);
+        captured_body = std::string(body);
+        captured_headers = headers;
+
+        if (on_response_chunk != nullptr)
+        {
+            (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"hi\"}}]}\n\n");
+            (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":3}}\n\n");
+            (*on_response_chunk)("data: [DONE]\n\n");
+        }
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        return response;
+    };
+
+    std::istringstream input("hello\n");
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"chat", "--provider", "openai", "--endpoint", "http://openai.test/v1", "--model",
+                        "gpt-4o-mini", "--stream"},
+                       input, output, error_output, &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(captured_headers.size(), 1U);
+    if (!captured_headers.empty())
+    {
+        EXPECT_EQ(captured_headers.front().first, "Accept");
+        EXPECT_EQ(captured_headers.front().second, "application/json");
+    }
+
+    const auto request_payload = nlohmann::json::parse(captured_body, nullptr, false);
+    ASSERT_FALSE(request_payload.is_discarded());
+    EXPECT_EQ(request_payload.at("model"), "gpt-4o-mini");
+    EXPECT_TRUE(request_payload.at("stream"));
+    ASSERT_EQ(request_payload.at("messages").size(), 1U);
+    EXPECT_EQ(request_payload.at("messages").at(0).at("content"), "hello");
+    EXPECT_NE(output.str().find("assistant: hi"), std::string::npos);
 }
 

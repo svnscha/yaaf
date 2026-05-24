@@ -457,7 +457,8 @@ TEST(ScriptLuaTests, LlmModuleRegistersLuaProviderCallbacks)
         script << "table.sort(names)\n";
         script << "assert(names[1] == 'custom')\n";
         script << "assert(names[2] == 'echo')\n";
-        script << "assert(names[3] == 'ollama')\n";
+        script << "assert(names[3] == 'ollama' or names[3] == 'openai')\n";
+        script << "assert(names[4] == 'openai' or names[4] == 'ollama')\n";
         script << "local client = llm.create('custom', { endpoint = 'http://llm.test', model = 'lua-client' })\n";
         script << "local generated = client.generate({ prompt = 'hello' })\n";
         script << "local chatted = client.chat({ messages = {{ role = 'user', content = 'hi' }} })\n";
@@ -731,4 +732,98 @@ TEST(ScriptLuaRuntimePathTests, ExplicitRuntimeRootOverridesExecutableDirectory)
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_EQ(output.str(), "override\n");
+}
+
+
+TEST(ScriptLuaTests, BuiltInOpenAiProviderMapsChatStreamingAndEmbeddings)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_openai_provider_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local llm = require('llm')\n";
+        script << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini', api_key = 'sk-test' })\n";
+        script << "local seen = {}\n";
+        script << "local response = client.chat({\n";
+        script << "  stream = true,\n";
+        script << "  format = { type = 'object', properties = { answer = { type = 'string' } } },\n";
+        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', arguments = { type = 'object' } } }},\n";
+        script << "  messages = {{ role = 'user', content = 'hello' }},\n";
+        script << "  on_stream = function(event) if event.message and event.message.content and event.message.content ~= '' then table.insert(seen, event.message.content) end end,\n";
+        script << "})\n";
+        script << "local embedding = client.embed({ input = 'hello', dimensions = 8 })\n";
+        script << "print(table.concat(seen, ''))\n";
+        script << "print(response.message.content)\n";
+        script << "print(response.message.tool_calls[1]['function'].name)\n";
+        script << "print(response.message.tool_calls[1]['function'].arguments.text)\n";
+        script << "print(embedding.embeddings[1][1])\n";
+    }
+
+    std::size_t post_count = 0;
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        ++post_count;
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(headers.size(), 2U);
+        std::map<std::string, std::string> header_map;
+        for (const auto &header : headers)
+        {
+            header_map.emplace(header.first, header.second);
+        }
+        EXPECT_EQ(header_map.at("Accept"), "application/json");
+        EXPECT_EQ(header_map.at("Authorization"), "Bearer sk-test");
+
+        const auto payload = nlohmann::json::parse(body, nullptr, false);
+        EXPECT_FALSE(payload.is_discarded());
+        if (payload.is_discarded())
+        {
+            return HttpClient::Response{};
+        }
+        if (url == "http://openai.test/v1/chat/completions")
+        {
+            EXPECT_EQ(payload.at("model"), "gpt-4o-mini");
+            EXPECT_TRUE(payload.at("stream"));
+            EXPECT_EQ(payload.at("response_format").at("type"), "json_schema");
+            EXPECT_EQ(payload.at("tools").size(), 1U);
+            EXPECT_EQ(payload.at("tools").at(0).at("function").at("name"), "echo");
+            EXPECT_NE(on_response_chunk, nullptr);
+            if (on_response_chunk != nullptr)
+            {
+                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"}}]}\n\n");
+                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"content\":\" world\"}}]}\n\n");
+                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"name\":\"echo\",\"arguments\":\"{\\\"text\\\":\\\"hello\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":5}}\n\n");
+                (*on_response_chunk)("data: [DONE]\n\n");
+            }
+
+            HttpClient::Response response;
+            response.status_code = 200;
+            return response;
+        }
+
+        EXPECT_EQ(url, "http://openai.test/v1/embeddings");
+        EXPECT_EQ(payload.at("dimensions"), 8);
+        EXPECT_EQ(payload.at("input"), "hello");
+        EXPECT_EQ(on_response_chunk, nullptr);
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"model", "text-embedding-3-small"},
+                                       {"data", {{{"index", 0}, {"embedding", {0.25, 0.5}}}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(post_count, 2U);
+    EXPECT_EQ(output.str(), "Hello world\nHello world\necho\nhello\n0.25\n");
 }
