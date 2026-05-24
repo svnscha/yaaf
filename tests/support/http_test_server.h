@@ -16,6 +16,8 @@
 #include <unistd.h>
 #endif
 
+#include <thread>
+
 namespace yaaf::tests::http
 {
 namespace detail
