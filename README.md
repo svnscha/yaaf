@@ -102,6 +102,8 @@ yaaf run ./examples/example.lua one two three
 
 Build, environment setup, executable locations, and command reference live in [Usage](https://svnscha.github.io/yaaf/usage/). The full documentation index is at [https://svnscha.github.io/yaaf/](https://svnscha.github.io/yaaf/).
 
+For Windows development builds, use the checked-in presets from [Usage](https://svnscha.github.io/yaaf/usage/): `cmake --preset windows-x64`, then `cmake --build --preset windows-debug` or `cmake --build --preset windows-release`.
+
 For the Linux release path, use the musl static preset documented in [Usage](https://svnscha.github.io/yaaf/usage/). The validated local reproduction command is `cmake --preset linux-musl-static && cmake --build build/linux-musl-static --config Release --target yaaf`.
 
 Serve the docs locally with MkDocs:

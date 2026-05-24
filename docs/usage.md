@@ -55,11 +55,21 @@ cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsy
 cmake --build build
 ```
 
+On Windows, use the checked-in presets so Debug and Release builds share the same Visual Studio x64 configure tree:
+
+```powershell
+cmake --preset windows-x64
+cmake --build --preset windows-debug
+cmake --build --preset windows-release
+```
+
 Typical output paths are:
 
 ```text
 build/app/yaaf
 build/app/Debug/yaaf
+build/windows-x64/app/Debug/yaaf.exe
+build/windows-x64/app/Release/yaaf.exe
 ```
 
 On Linux, the normal contributor executable path is `build/app/yaaf`. The packaged Linux release artifact is `build/linux-musl-static/app/yaaf` and is built as a musl-based static executable. CI validates that artifact as statically linked and smoke-tests the packaged bundle on both Alpine and Debian.
@@ -338,13 +348,15 @@ yaaf --pretty embed --model nomic-embed-text:v1.5 "hello world"
 
 ## Proxy Testing
 
-Start the local Docker test stack with Docker Compose:
+Start the optional local fixture stack with Docker Compose when you want to inspect proxy traffic manually or smoke-test the HTTP and MCP transport paths outside the default native test suite:
 
 ```powershell
-docker compose -f docker-compose.test-stack.yml up
+docker compose -f docker-compose.fixture-stack.yml up
 ```
 
 The proxy listens on `http://127.0.0.1:18080`, the mitmweb UI is available at `http://127.0.0.1:18081`, the local `httpbin` fixture listens on `http://127.0.0.1:18082`, and the same stack starts the hello-world MCP HTTP and SSE fixtures on `http://127.0.0.1:39231/mcp` and `http://127.0.0.1:39232/mcp`.
+
+This stack is for manual debugging, proxy inspection, and explicit smoke checks. The default `libyaaf_tests` flow is intended to stay runnable without Docker or other prestarted services.
 
 Smoke-test the CLI proxy path with a plain HTTP request:
 

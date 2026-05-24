@@ -54,4 +54,4 @@ cmake --build build --config Debug --target libyaaf_tests
 - Keep examples short and compatible with the current implementation.
 - Do not document `${input:...}` as supported; yaaf rejects it. Use `${env:NAME}` or `envFile` examples instead.
 - Keep fixture servers hello-world specific. Do not copy weather/API examples into this repository's MCP test servers.
-- Keep stdio fixture tests runtime-owned through `.yaaf/mcp.json`; keep HTTP/SSE fixture tests prestarted through `docker-compose.test-stack.yml` or documented endpoint overrides instead of launching them from C++ tests.
+- Keep stdio fixture tests runtime-owned through `.yaaf/mcp.json`; keep optional HTTP/SSE fixture smoke checks prestarted through `docker-compose.fixture-stack.yml` or documented endpoint overrides instead of launching them from C++ tests.

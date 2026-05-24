@@ -12,13 +12,13 @@ uv --directory ./mcp-servers run python hello_sse.py --host 127.0.0.1 --port 392
 
 Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra Linux-only prerequisites for the stdio fixture tests beyond having `uv` available.
 
-The local Docker test stack includes `httpbin`, mitmproxy, and the HTTP/SSE MCP fixtures used by integration tests:
+The optional local fixture stack includes `httpbin`, mitmproxy, and the HTTP/SSE MCP fixtures used for manual debugging, proxy inspection, and explicit smoke checks:
 
 ```powershell
-docker compose -f docker-compose.test-stack.yml up
+docker compose -f docker-compose.fixture-stack.yml up
 ```
 
-The native integration tests use these fixture-only endpoint defaults and overrides:
+The native codebase still uses these fixture-only endpoint defaults and overrides when you intentionally point a manual run or smoke check at the prestarted stack:
 
 - `YAAF_HTTPBIN_URL` (default `http://127.0.0.1:18082`)
 - `YAAF_HTTPBIN_PROXIED_URL` (default `http://host.docker.internal:18082`)
@@ -26,7 +26,7 @@ The native integration tests use these fixture-only endpoint defaults and overri
 - `YAAF_MCP_HELLO_HTTP_PROXIED_URL` (default `http://host.docker.internal:39231/mcp`)
 - `YAAF_MCP_HELLO_SSE_URL` (default `http://127.0.0.1:39232/mcp`)
 
-Those variables are not user-facing MCP configuration; normal yaaf runs select an MCP config file with `--mcp <path>` or `YAAF_MCP_FILE`, and fixture URLs belong inside that file. The proxied MCP tests also require `YAAF_PROXY` so requests are visible in mitmproxy. The tests skip HTTP/SSE cases when the prestarted servers are not reachable.
+Those variables are not user-facing MCP configuration; normal yaaf runs select an MCP config file with `--mcp <path>` or `YAAF_MCP_FILE`, and fixture URLs belong inside that file. Proxied MCP smoke checks also require `YAAF_PROXY` so requests are visible in mitmproxy.
 
 For tests, pass `--port 0 --ready-file <path>` to let the OS choose a free port and write the selected port as JSON.
 

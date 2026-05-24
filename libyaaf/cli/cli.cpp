@@ -664,6 +664,10 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
             return services->mcp_http_post(url, body, content_type, headers);
         };
     }
+    if (services->mcp_stdio_process_factory)
+    {
+        script_services.mcp_stdio_process_factory = services->mcp_stdio_process_factory;
+    }
 
     return yaaf::script::run_file(runtime_options, &script_services);
 }
@@ -807,3 +811,7 @@ int run(int argc, const char *const *argv, std::istream &input, std::ostream &ou
     return run(std::move(args), input, output, error_output, services);
 }
 } // namespace yaaf::cli
+
+
+
+

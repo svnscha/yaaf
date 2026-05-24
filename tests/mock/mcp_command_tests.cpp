@@ -4,20 +4,15 @@
 
 using namespace yaaf::tests::mcp;
 
-TEST(McpCommandMockTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpCommandMockTests, AskCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_ask_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -60,8 +55,8 @@ TEST(McpCommandMockTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConfig)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
-                        "hello.hello", "Say", "hello", "through", "MCP"},
+        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(),
+                        "--tool", "hello.hello", "Say", "hello", "through", "MCP"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -72,20 +67,15 @@ TEST(McpCommandMockTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConfig)
                             "assistant: The MCP server said hello.\n");
 }
 
-TEST(McpCommandMockTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpCommandMockTests, ChatCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_chat_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -137,20 +127,15 @@ TEST(McpCommandMockTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceConfig)
                             "user: ");
 }
 
-TEST(McpCommandMockTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpCommandMockTests, AgentCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_agent_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -192,8 +177,8 @@ TEST(McpCommandMockTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceConfig)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
-                        "hello.repeat", "Repeat hi through MCP"},
+        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(),
+                        "--tool", "hello.repeat", "Repeat hi through MCP"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -205,4 +190,3 @@ TEST(McpCommandMockTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceConfig)
                             "thought: The MCP tool returned the repeated text.\n"
                             "assistant: hi hi hi\n");
 }
-

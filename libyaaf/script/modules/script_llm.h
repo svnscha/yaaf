@@ -24,6 +24,7 @@ struct Services
         chat;
     std::function<yaaf::llm::EmbedResponse(const yaaf::llm::EmbedRequest &request)> embed;
     yaaf::mcp::HttpPost mcp_http_post;
+    yaaf::mcp::StdioProcessFactory mcp_stdio_process_factory;
     std::shared_ptr<const yaaf::mcp::schema::Registry> mcp_schema_registry;
 };
 
