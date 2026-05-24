@@ -129,6 +129,21 @@ class ScopedUnsetEnvironmentVariable
     std::string name_;
     std::optional<std::string> original_;
 };
+
+[[nodiscard]] std::filesystem::path path_from_output(const std::ostringstream &output)
+{
+    auto value = output.str();
+    if (!value.empty() && value.back() == '\n')
+    {
+        value.pop_back();
+    }
+    return value;
+}
+
+void expect_equivalent_path_output(const std::ostringstream &output, const std::filesystem::path &expected)
+{
+    EXPECT_EQ(std::filesystem::weakly_canonical(path_from_output(output)), std::filesystem::weakly_canonical(expected));
+}
 } // namespace
 
 TEST(CliTests, RootHelpOmitsOllamaSubcommandOptions)
@@ -360,7 +375,7 @@ TEST(CliTests, RunSubcommandForwardsExplicitMcpOption)
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
-    EXPECT_EQ(output.str(), mcp_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, mcp_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -417,7 +432,7 @@ TEST(CliTests, DefaultDiscoveryFindsYaafMcpJsonInWorkspaceRoot)
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());
     }
-    EXPECT_EQ(output.str(), mcp_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, mcp_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -444,7 +459,7 @@ TEST(CliTests, EnvironmentVariableOverridesYaafMcpJsonDiscovery)
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());
     }
-    EXPECT_EQ(output.str(), env_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, env_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -472,7 +487,7 @@ TEST(CliTests, ExplicitMcpOptionOverridesYaafMcpJsonDiscovery)
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());
     }
-    EXPECT_EQ(output.str(), explicit_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, explicit_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -497,7 +512,7 @@ TEST(CliTests, RunSubcommandDiscoversYaafMcpJsonFromCurrentDirectory)
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());
     }
-    EXPECT_EQ(output.str(), mcp_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, mcp_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -517,3 +532,4 @@ TEST(CliTests, BuiltinCommandsAreLoadedFromLuaCliDirectory)
     EXPECT_EQ(payload.at("registries").at("agents").at(0).at("name"), "react");
     EXPECT_EQ(payload.at("registries").at("tools").at(0).at("name"), "echo");
 }
+
