@@ -85,6 +85,35 @@ TEST(DotenvTests, LoadFromParentsFindsNearestAncestorFile)
     std::filesystem::remove_all(root);
 }
 
+TEST(DotenvTests, LoadFromParentsMergesAncestorFilesWithNearestOverrides)
+{
+    const auto root = make_test_directory("dotenv-merge");
+    const auto nested_parent = root / "a" / "b";
+    const auto nested = nested_parent / "c";
+    std::filesystem::create_directories(nested);
+
+    {
+        std::ofstream output(root / ".env");
+        output << "YAAF_OPENAI_ENDPOINT=https://root.example/v1\n";
+        output << "YAAF_OPENAI_MODEL=gpt-4o-mini\n";
+    }
+
+    {
+        std::ofstream output(nested_parent / ".env");
+        output << "YAAF_OPENAI_ENDPOINT=https://nested.example/v1\n";
+    }
+
+    {
+        const ScopedCurrentPath scoped_path(nested);
+        const auto dotenv = yaaf::dotenv::EnvironmentFile::load_from_parents();
+
+        EXPECT_EQ(dotenv.get("YAAF_OPENAI_ENDPOINT"), std::optional<std::string>{"https://nested.example/v1"});
+        EXPECT_EQ(dotenv.get("YAAF_OPENAI_MODEL"), std::optional<std::string>{"gpt-4o-mini"});
+    }
+
+    std::filesystem::remove_all(root);
+}
+
 TEST(DotenvTests, LoadMissingFileReturnsEmptyEnvironment)
 {
     const auto dotenv = yaaf::dotenv::EnvironmentFile::load("this-file-does-not-exist.env");

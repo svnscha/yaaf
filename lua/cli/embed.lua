@@ -1,10 +1,14 @@
 local yaaf = require("yaaf")
 local json = require("json")
 local llm = require("llm")
-local ollama = llm.create("ollama")
+
+local function selected_client(options)
+    return llm.create(options.provider or "ollama")
+end
 
 local function run(command)
     local options = command.options
+    local client = selected_client(options)
     if options.format ~= nil and options.format ~= "" and options.format ~= "json" then
         error("embed only supports --format json")
     end
@@ -29,7 +33,7 @@ local function run(command)
         end
     end
 
-    local response = ollama.embed(request)
+    local response = client.embed(request)
     print(json.encode({
         model = response.model,
         embeddings = response.embeddings,
@@ -42,6 +46,13 @@ end
 return yaaf.command({
     description = "Generate embeddings for one or more input texts",
     options = {
+        {
+            name = "provider",
+            flags = { "--provider" },
+            type = "string",
+            default = "ollama",
+            description = "Provider used by this command",
+        },
         {
             name = "endpoint",
             flags = { "--endpoint" },

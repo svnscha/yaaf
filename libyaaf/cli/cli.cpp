@@ -31,6 +31,7 @@ struct LuaCommandOptionBinding
     std::string string_value;
     std::vector<std::string> string_values;
     bool bool_value = false;
+    CLI::Option *option = nullptr;
 };
 
 struct LuaCommandPositionalBinding
@@ -64,6 +65,98 @@ struct RunCommandOptions
     std::vector<std::string> arguments;
     std::string mcp_config_path;
     CLI::App *app = nullptr;
+};
+
+[[nodiscard]] std::optional<std::string> environment_or_dotenv(const yaaf::dotenv::EnvironmentFile &dotenv,
+                                                               std::string_view key);
+
+class ScopedProcessEnvironmentVariable
+{
+  public:
+    ScopedProcessEnvironmentVariable() = default;
+
+    ScopedProcessEnvironmentVariable(std::string name, std::optional<std::string> value) : name_(std::move(name))
+    {
+        if (!value.has_value() || value->empty())
+        {
+            return;
+        }
+
+        if (const auto *current = std::getenv(name_.c_str()); current != nullptr)
+        {
+            original_ = current;
+        }
+
+        set(*value);
+        active_ = true;
+    }
+
+    ScopedProcessEnvironmentVariable(const ScopedProcessEnvironmentVariable &) = delete;
+    ScopedProcessEnvironmentVariable &operator=(const ScopedProcessEnvironmentVariable &) = delete;
+
+    ScopedProcessEnvironmentVariable(ScopedProcessEnvironmentVariable &&other) noexcept
+        : name_(std::move(other.name_)), original_(std::move(other.original_)), active_(other.active_)
+    {
+        other.active_ = false;
+    }
+
+    ScopedProcessEnvironmentVariable &operator=(ScopedProcessEnvironmentVariable &&other) noexcept = delete;
+
+    ~ScopedProcessEnvironmentVariable()
+    {
+        if (!active_)
+        {
+            return;
+        }
+
+        if (original_.has_value())
+        {
+            set(*original_);
+        }
+        else
+        {
+            unset();
+        }
+    }
+
+  private:
+    void set(const std::string &value) const
+    {
+#ifdef _WIN32
+        _putenv_s(name_.c_str(), value.c_str());
+#else
+        setenv(name_.c_str(), value.c_str(), 1);
+#endif
+    }
+
+    void unset() const
+    {
+#ifdef _WIN32
+        _putenv_s(name_.c_str(), "");
+#else
+        unsetenv(name_.c_str());
+#endif
+    }
+
+    std::string name_;
+    std::optional<std::string> original_;
+    bool active_ = false;
+};
+
+struct ScopedLuaProviderEnvironment
+{
+    explicit ScopedLuaProviderEnvironment(const yaaf::dotenv::EnvironmentFile &dotenv)
+        : openai_endpoint{"YAAF_OPENAI_ENDPOINT", environment_or_dotenv(dotenv, "YAAF_OPENAI_ENDPOINT")},
+          openai_api_key{"YAAF_OPENAI_API_KEY", environment_or_dotenv(dotenv, "YAAF_OPENAI_API_KEY")},
+          openai_model{"YAAF_OPENAI_MODEL", environment_or_dotenv(dotenv, "YAAF_OPENAI_MODEL")},
+          openai_embed_model{"YAAF_OPENAI_EMBED_MODEL", environment_or_dotenv(dotenv, "YAAF_OPENAI_EMBED_MODEL")}
+    {
+    }
+
+    ScopedProcessEnvironmentVariable openai_endpoint;
+    ScopedProcessEnvironmentVariable openai_api_key;
+    ScopedProcessEnvironmentVariable openai_model;
+    ScopedProcessEnvironmentVariable openai_embed_model;
 };
 
 [[nodiscard]] std::filesystem::path absolute_path(const std::filesystem::path &path)
@@ -266,11 +359,11 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
                 if (binding.type == "flag" || binding.type == "bool")
                 {
                     binding.bool_value = metadata_bool(option_metadata, "default");
-                    command.app->add_flag(std::move(names), binding.bool_value, description);
+                    binding.option = command.app->add_flag(std::move(names), binding.bool_value, description);
                 }
                 else if (binding.type == "strings")
                 {
-                    command.app
+                    binding.option = command.app
                         ->add_option_function<std::string>(
                             std::move(names),
                             [&binding](const std::string &value) { binding.string_values.push_back(value); },
@@ -281,6 +374,7 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
                 {
                     binding.string_value = metadata_string(option_metadata, "default");
                     auto *option = command.app->add_option(std::move(names), binding.string_value, description);
+                    binding.option = option;
                     if (option_metadata.find("default") != option_metadata.end())
                     {
                         option->default_str(binding.string_value);
@@ -377,6 +471,28 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
 [[nodiscard]] nlohmann::json parsed_lua_options(const LuaCommand &command)
 {
     nlohmann::json payload = nlohmann::json::object();
+    std::string provider_name;
+    bool endpoint_was_explicit = false;
+    bool model_was_explicit = false;
+
+    for (const auto &option : command.options)
+    {
+        if (option.name == "provider")
+        {
+            provider_name = option.string_value;
+        }
+
+        if (option.name == "endpoint" && option.option != nullptr && option.option->count() > 0)
+        {
+            endpoint_was_explicit = true;
+        }
+
+        if (option.name == "model" && option.option != nullptr && option.option->count() > 0)
+        {
+            model_was_explicit = true;
+        }
+    }
+
     for (const auto &option : command.options)
     {
         if (option.name.empty())
@@ -394,6 +510,18 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
         }
         else
         {
+            if (option.name == "endpoint" && provider_name == "openai" && !endpoint_was_explicit)
+            {
+                payload[option.name] = "";
+                continue;
+            }
+
+            if (option.name == "model" && provider_name == "openai" && !model_was_explicit)
+            {
+                payload[option.name] = "";
+                continue;
+            }
+
             payload[option.name] = option.string_value;
         }
     }
@@ -626,6 +754,7 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
                                                      : std::filesystem::path(global_options.mcp_config_path);
             script_options.mcp_config_path =
                 resolve_mcp_config_path(run_explicit_path, global_options.mcp_config_path_env, workspace_root);
+            const ScopedLuaProviderEnvironment provider_environment{dotenv};
             return run_script(script_options, global_options, input, output, services);
         }
 
@@ -639,6 +768,7 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
             script_options.mcp_config_path =
                 mcp_config_path_from_options(script_options.options, global_options, std::filesystem::current_path());
             script_options.positionals = parsed_lua_positionals(*lua_command);
+            const ScopedLuaProviderEnvironment provider_environment{dotenv};
             return run_script(script_options, global_options, input, output, services);
         }
 

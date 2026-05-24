@@ -2,7 +2,6 @@ local native = require("agent")
 local llm = require("llm")
 local json = require("json")
 local tool_registry = require("tool")
-local ollama = llm.create("ollama")
 
 local ReactAgent = {}
 ReactAgent.__index = ReactAgent
@@ -161,9 +160,12 @@ function ReactAgent.new(options)
     end
 
     local tools = options.tools or {}
+    local provider = options.provider or "ollama"
     tool_registry.create_many(tools)
 
     return setmetatable({
+        provider = provider,
+        client = llm.create(provider),
         endpoint = options.endpoint,
         model = options.model,
         think = options.think,
@@ -182,7 +184,7 @@ function ReactAgent:build_messages(input, system_prompt)
 end
 
 function ReactAgent:complete_chat(messages)
-    return ollama.chat({
+    return self.client.chat({
         endpoint = self.endpoint,
         model = self.model,
         think = self.think,
@@ -216,7 +218,7 @@ function ReactAgent:run(input)
                     content = parsed.final_answer,
                     tool_results = tool_results,
                     turns = turn,
-                    metadata = { model = response.model },
+                    metadata = { model = response.model, provider = self.provider },
                 }
             end
 
@@ -225,7 +227,7 @@ function ReactAgent:run(input)
                 content = content,
                 tool_results = tool_results,
                 turns = turn,
-                metadata = { model = response.model },
+                metadata = { model = response.model, provider = self.provider },
             }
         else
             native.emit({ kind = "thought", content = parsed.thought })
@@ -261,7 +263,7 @@ function ReactAgent:run(input)
         content = "Maximum turns reached without a final answer.",
         tool_results = tool_results,
         turns = self.max_turns,
-        metadata = { max_turns_exceeded = true },
+        metadata = { max_turns_exceeded = true, provider = self.provider },
     }
     native.emit({ kind = "final_answer", content = result.content })
     return result

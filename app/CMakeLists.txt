@@ -27,6 +27,8 @@ target_link_libraries(${PROJECT_NAME}
     libyaaf
 )
 
+set(_yaaf_sync_dotenv_script "${CMAKE_SOURCE_DIR}/cmake/SyncDotenv.cmake")
+
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E rm -rf
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lua"
@@ -38,5 +40,10 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/examples"
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/examples"
+  COMMAND ${CMAKE_COMMAND}
+    -Dsource_env="${CMAKE_SOURCE_DIR}/.env"
+    -Dtarget_env="$<TARGET_FILE_DIR:${PROJECT_NAME}>/.env"
+    -Dconfig="$<CONFIG>"
+    -P "${_yaaf_sync_dotenv_script}"
   COMMENT "Copying Lua runtime and examples to yaaf executable directory"
 )

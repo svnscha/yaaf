@@ -787,6 +787,9 @@ int open_llm_module(lua_State *state)
     require_module(state, "llm.providers.echo");
     lua_setfield(state, providers_index, "echo");
 
+    require_module(state, "llm.providers.openai");
+    lua_setfield(state, providers_index, "openai");
+
     require_module(state, "llm.providers.ollama");
     const int ollama_provider_index = absolute_index(state, -1);
     if (runtime.services != nullptr)

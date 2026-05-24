@@ -14,6 +14,23 @@ constexpr std::string_view kDefaultOllamaModel = "qwen3:0.6b";
     return yaaf::tests::runtime_env_value(dotenv, "YAAF_OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
 }
 
+[[nodiscard]] std::string runtime_openai_endpoint(const yaaf::dotenv::EnvironmentFile &dotenv)
+{
+    const auto configured = yaaf::tests::runtime_env_value(dotenv, "YAAF_OPENAI_ENDPOINT");
+    if (configured.has_value())
+    {
+        return *configured;
+    }
+
+    auto endpoint = runtime_ollama_endpoint(dotenv);
+    if (!endpoint.empty() && endpoint.back() == '/')
+    {
+        endpoint.pop_back();
+    }
+    endpoint += "/v1";
+    return endpoint;
+}
+
 [[nodiscard]] std::string runtime_ollama_model(const yaaf::dotenv::EnvironmentFile &dotenv)
 {
     return yaaf::tests::runtime_env_value(dotenv, "YAAF_OLLAMA_MODEL").value_or(std::string(kDefaultOllamaModel));
@@ -26,6 +43,16 @@ constexpr std::string_view kDefaultOllamaModel = "qwen3:0.6b";
         endpoint += '/';
     }
     endpoint += "api/tags";
+    return endpoint;
+}
+
+[[nodiscard]] std::string openai_models_url(std::string endpoint)
+{
+    if (endpoint.empty() || endpoint.back() != '/')
+    {
+        endpoint += '/';
+    }
+    endpoint += "models";
     return endpoint;
 }
 
@@ -72,6 +99,19 @@ constexpr std::string_view kDefaultOllamaModel = "qwen3:0.6b";
     try
     {
         const auto response = HttpClient{http_options}.get(ollama_tags_url(std::string(endpoint)));
+        return response.status_code >= 200 && response.status_code < 300;
+    }
+    catch (const std::exception &)
+    {
+        return false;
+    }
+}
+
+[[nodiscard]] bool openai_compatible_available(std::string_view endpoint, const HttpClient::Options &http_options)
+{
+    try
+    {
+        const auto response = HttpClient{http_options}.get(openai_models_url(std::string(endpoint)));
         return response.status_code >= 200 && response.status_code < 300;
     }
     catch (const std::exception &)
@@ -236,3 +276,85 @@ TEST(McpClientDockerIntegrationTests, NativeClientListsAndCallsPrestartedSseServ
     expect_hello_tools(client, "hello");
 }
 
+
+TEST(McpClientDockerIntegrationTests, AskCommandSendsMcpToolsToOpenAiCompatibleModelThroughConfiguredProxy)
+{
+    const auto root = repository_root();
+    const auto workspace = make_workspace("assistant_mcp_real_openai_ask_model_test");
+    const auto mcp_url = proxied_http_mcp_url(workspace);
+    const auto dotenv = runtime_dotenv(workspace);
+
+    auto http_options = workspace_http_options(workspace);
+    if (!has_configured_proxy(http_options))
+    {
+        GTEST_SKIP() << "YAAF_PROXY is required for proxied real-model MCP command integration tests";
+    }
+    if (!proxied_http_fixture_available(mcp_url, http_options))
+    {
+        GTEST_SKIP() << "start mitmproxy and the hello HTTP MCP fixture with docker compose -f "
+                        "docker-compose.mitmproxy.yml up";
+    }
+    const auto openai_endpoint = runtime_openai_endpoint(dotenv);
+    if (!openai_compatible_available(openai_endpoint, http_options))
+    {
+        GTEST_SKIP() << "start an OpenAI-compatible endpoint at " << openai_endpoint;
+    }
+
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "http"}, {"url", mcp_url}}}}}});
+    const CurrentPathGuard current_path{root};
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run(
+        {"--proxy", *http_options.proxy, "ask", "--provider", "openai", "--endpoint", openai_endpoint, "--model",
+         runtime_ollama_model(dotenv), "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.hello",
+         "You must call the hello.hello tool with name MCP, then answer with the greeting."},
+        input, output, error_output, nullptr);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS) << error_output.str();
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_NE(output.str().find("assistant:"), std::string::npos);
+}
+
+TEST(McpClientDockerIntegrationTests, ChatCommandSendsMcpToolsToOpenAiCompatibleModelThroughConfiguredProxy)
+{
+    const auto root = repository_root();
+    const auto workspace = make_workspace("assistant_mcp_real_openai_chat_model_test");
+    const auto mcp_url = proxied_http_mcp_url(workspace);
+    const auto dotenv = runtime_dotenv(workspace);
+
+    auto http_options = workspace_http_options(workspace);
+    if (!has_configured_proxy(http_options))
+    {
+        GTEST_SKIP() << "YAAF_PROXY is required for proxied real-model MCP command integration tests";
+    }
+    if (!proxied_http_fixture_available(mcp_url, http_options))
+    {
+        GTEST_SKIP() << "start mitmproxy and the hello HTTP MCP fixture with docker compose -f "
+                        "docker-compose.mitmproxy.yml up";
+    }
+    const auto openai_endpoint = runtime_openai_endpoint(dotenv);
+    if (!openai_compatible_available(openai_endpoint, http_options))
+    {
+        GTEST_SKIP() << "start an OpenAI-compatible endpoint at " << openai_endpoint;
+    }
+
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "http"}, {"url", mcp_url}}}}}});
+    const CurrentPathGuard current_path{root};
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run(
+        {"--proxy", *http_options.proxy, "chat", "--provider", "openai", "--endpoint", openai_endpoint, "--model",
+         runtime_ollama_model(dotenv), "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.repeat",
+         "You must call the hello.repeat tool with text hi and count 3, then answer with the repeated text."},
+        input, output, error_output, nullptr);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS) << error_output.str();
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_NE(output.str().find("assistant:"), std::string::npos);
+}
