@@ -24,14 +24,6 @@ jobs:
             lua_dir: build\app\lua
             examples_dir: build\app\examples
             ctest_enabled: false
-          - os: ubuntu-latest
-            artifact_name: yaaf-linux-ubuntu-amd64
-            build_dir: build
-            package_dir: build/package/yaaf-linux-ubuntu-amd64
-            executable: build/app/yaaf
-            lua_dir: build/app/lua
-            examples_dir: build/app/examples
-            ctest_enabled: true
           - os: macos-latest
             artifact_name: yaaf-macos
             build_dir: build
@@ -68,15 +60,6 @@ jobs:
         with:
           arch: amd64
 
-      - name: Select clang on Linux
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          echo 'CC=clang' >> "$GITHUB_ENV"
-          echo 'CXX=clang++' >> "$GITHUB_ENV"
-          clang --version
-          clang++ --version
-
       - name: Bootstrap vcpkg on Windows
         if: runner.os == 'Windows'
         shell: pwsh
@@ -102,16 +85,6 @@ jobs:
         run: >-
           cmake -S . -B ${{ matrix.build_dir }} -G Ninja
           -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-
-      - name: Configure CMake on Linux
-        if: runner.os == 'Linux'
-        shell: bash
-        run: >-
-          cmake -S . -B ${{ matrix.build_dir }} -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_C_COMPILER=${{ env.CC }}
-          -DCMAKE_CXX_COMPILER=${{ env.CXX }}
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
       - name: Build yaaf
@@ -150,45 +123,132 @@ jobs:
           path: ${{ matrix.package_dir }}
           if-no-files-found: error
 
-  linux-runtime-compat:
-    needs: build
+  linux-musl-build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distro_name: ubuntu-24.04
-            image: ubuntu:24.04
-            expected_result: pass
-          - distro_name: ubuntu-22.04
-            image: ubuntu:22.04
-            expected_result: glibc-floor
+    container:
+      image: alpine:3.20
+    env:
+      CC: clang
+      CXX: clang++
+      VCPKG_FORCE_SYSTEM_BINARIES: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Checkout vcpkg
+        uses: actions/checkout@v6
+        with:
+          repository: microsoft/vcpkg
+          ref: e5a4f54c0d562059e9ccc6f7e7150667da58fe41
+          path: vcpkg
+
+      - name: Install Linux musl build dependencies
+        shell: sh
+        run: |
+          apk add --no-cache \
+            bash \
+            build-base \
+            ca-certificates \
+            clang18 \
+            clang18-extra-tools \
+            curl \
+            git \
+            lld \
+            lldb \
+            linux-headers \
+            ninja-build \
+            perl \
+            pkgconf \
+            py3-pip \
+            python3 \
+            tar \
+            unzip \
+            xz \
+            zip
+          ln -sf /usr/bin/clang-18 /usr/bin/clang
+          ln -sf /usr/bin/clang++-18 /usr/bin/clang++
+          ln -sf /usr/bin/clangd-18 /usr/bin/clangd
+          ln -sf /usr/bin/clang-scan-deps-18 /usr/bin/clang-scan-deps
+          python3 -m pip install --break-system-packages --no-cache-dir 'cmake==4.3.2'
+          cmake_bin_dir="$(python3 -c 'import cmake; print(cmake.CMAKE_BIN_DIR)')"
+          ln -sf "${cmake_bin_dir}/cmake" /usr/local/bin/cmake
+          ln -sf "${cmake_bin_dir}/ccmake" /usr/local/bin/ccmake
+          ln -sf "${cmake_bin_dir}/cpack" /usr/local/bin/cpack
+          ln -sf "${cmake_bin_dir}/ctest" /usr/local/bin/ctest
+          curl -fsSL 'https://github.com/ninja-build/ninja/archive/refs/tags/v1.13.2.tar.gz' -o /tmp/ninja-src.tar.gz
+          tar -xzf /tmp/ninja-src.tar.gz -C /tmp
+          cd /tmp/ninja-1.13.2
+          python3 configure.py --bootstrap
+          install -m 0755 ninja /usr/local/bin/ninja
+          ln -sf /usr/local/bin/ninja /usr/bin/ninja
+          rm -rf /tmp/ninja-src.tar.gz /tmp/ninja-1.13.2
+
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure CMake
+        shell: bash
+        run: cmake --preset linux-musl-static
+
+      - name: Build yaaf
+        shell: bash
+        run: cmake --build build/linux-musl-static --config Release --target yaaf
+
+      - name: Build unit tests
+        shell: bash
+        run: cmake --build build/linux-musl-static --config Release --target libyaaf_tests
+
+      - name: Run unit tests
+        shell: bash
+        run: ctest --test-dir build/linux-musl-static --output-on-failure -L default
+
+      - name: Package Linux musl bundle
+        shell: bash
+        run: |
+          package_dir='build/package/yaaf-linux-musl-static-amd64'
+          mkdir -p "$package_dir"
+          cp 'build/linux-musl-static/app/yaaf' "$package_dir/yaaf"
+          cp -R 'build/linux-musl-static/app/lua' "$package_dir/lua"
+          cp -R 'build/linux-musl-static/app/examples' "$package_dir/examples"
+
+      - name: Upload Linux musl bundle artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: yaaf-linux-musl-static-amd64
+          path: build/package/yaaf-linux-musl-static-amd64
+          if-no-files-found: error
+
+  linux-runtime-smoke:
+    needs: linux-musl-build
+    runs-on: ubuntu-latest
 
     steps:
       - name: Download Linux bundle artifact
         uses: actions/download-artifact@v6
         with:
-          name: yaaf-linux-ubuntu-amd64
-          path: runtime-smoke/yaaf-linux-ubuntu-amd64
+          name: yaaf-linux-musl-static-amd64
+          path: runtime-smoke/yaaf-linux-musl-static-amd64
 
       - name: Verify downloaded Linux bundle
         shell: bash
         run: |
-          test -f runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
-          test -d runtime-smoke/yaaf-linux-ubuntu-amd64/lua
-          test -d runtime-smoke/yaaf-linux-ubuntu-amd64/examples
-          chmod +x runtime-smoke/yaaf-linux-ubuntu-amd64/yaaf
+          test -f runtime-smoke/yaaf-linux-musl-static-amd64/yaaf
+          test -d runtime-smoke/yaaf-linux-musl-static-amd64/lua
+          test -d runtime-smoke/yaaf-linux-musl-static-amd64/examples
+          chmod +x runtime-smoke/yaaf-linux-musl-static-amd64/yaaf
 
-      - name: Smoke test Ubuntu runtime on ${{ matrix.distro_name }}
+      - name: Smoke test Linux musl runtime on Alpine
         shell: bash
         run: |
-          log_file="$RUNNER_TEMP/linux-runtime-${{ matrix.distro_name }}.log"
+          log_file="$RUNNER_TEMP/linux-runtime-alpine-3.20.log"
           if docker run --rm \
-            -v "${{ github.workspace }}/runtime-smoke/yaaf-linux-ubuntu-amd64:/bundle:ro" \
+            -v "${{ github.workspace }}/runtime-smoke/yaaf-linux-musl-static-amd64:/bundle:ro" \
             --workdir /bundle \
-            ${{ matrix.image }} \
-            /bin/bash -lc '
-              set -euo pipefail
+            alpine:3.20 \
+            /bin/sh -lc '
+              set -eu
               ./yaaf --help > /tmp/yaaf-help.txt
               grep -q "Usage:" /tmp/yaaf-help.txt
               ./yaaf run examples/example.lua smoke-test > /tmp/yaaf-example.txt
@@ -201,10 +261,4 @@ jobs:
           fi
 
           cat "$log_file"
-
-          if [[ "${{ matrix.expected_result }}" == "pass" ]]; then
-            [[ $status -eq 0 ]]
-          else
-            [[ $status -ne 0 ]]
-            grep -Eq 'GLIBC_2\.38|GLIBCXX_3\.4\.3[12]' "$log_file"
-          fi
+          [[ $status -eq 0 ]]
