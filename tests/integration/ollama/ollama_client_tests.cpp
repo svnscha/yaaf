@@ -325,7 +325,7 @@ print(json.encode({
 }))
 )"};
 
-    const auto payload = parse_json_output(run_lua_script(script, std::string(kEmbedModel)));
+    const auto payload = parse_json_output(run_lua_script(script, ollama_endpoint(), std::string(kEmbedModel)));
     EXPECT_EQ(json_string(payload, "model"), std::string(kEmbedModel));
     EXPECT_EQ(json_integer(payload, "embedding_count"), 1);
     EXPECT_GT(json_integer(payload, "width"), 0);
@@ -351,7 +351,7 @@ print(json.encode({
 }))
 )"};
 
-    const auto payload = parse_json_output(run_lua_script(script, std::string(kEmbedModel)));
+    const auto payload = parse_json_output(run_lua_script(script, ollama_endpoint(), std::string(kEmbedModel)));
     EXPECT_EQ(json_string(payload, "model"), std::string(kEmbedModel));
     EXPECT_EQ(json_integer(payload, "embedding_count"), 2);
     EXPECT_GT(json_integer(payload, "first_width"), 0);
