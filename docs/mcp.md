@@ -100,18 +100,21 @@ Example with workspace and environment variables:
 
 `envFile` lines use `NAME=value`. Empty names, comment lines starting with `#`, and lines without `=` are ignored. Inline `env` values override values loaded from `envFile`.
 
-Values under `headers` and `env` are redacted from `doctor` output.
+Values under `headers` and `env` are redacted from `doctor` output, including the active MCP diagnostics added to each server report.
 
 ## Tool Names
 
 MCP tools are exposed as `<server>.<tool>`. A server named `docs` with a remote tool named `lookup` becomes `docs.lookup`:
 
 ```powershell
+yaaf doctor
 yaaf doctor --format json --pretty
 yaaf ask --tool docs.lookup "Look up the install steps."
 yaaf chat --tool docs.lookup "What does this API do?"
 yaaf agent --name react --tool docs.lookup "Summarize the docs for this feature."
 ```
+
+`doctor` now performs an active `initialize` plus `tools/list` check for each configured server. In text mode it shows per-server initialize status and discovered tool names such as `docs.lookup`; in JSON mode each `mcp.servers[]` entry gains an `active` object with `initialize` and `tools` results.
 
 ## Runtime Behavior
 

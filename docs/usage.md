@@ -176,12 +176,14 @@ Options:
 
 ### `doctor`
 
-`doctor` prints runtime diagnostics: Lua version, endpoint, default model, registered agents, registered tools, MCP config state, and which app modes support tools.
+`doctor` prints runtime diagnostics: Lua version, endpoint, default model, registered agents, registered tools, MCP config state, active MCP initialize status, discovered MCP tools, and which app modes support tools.
 
 ```powershell
 yaaf doctor
 yaaf doctor --format json --pretty
 ```
+
+When MCP is configured, `doctor` actively initializes each supported server and runs tool discovery. Human-readable output shows per-server initialize status and discovered tool names; JSON output adds an `active` block under each MCP server with initialize and tool-discovery results.
 
 Options:
 

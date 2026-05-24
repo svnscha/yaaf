@@ -101,10 +101,11 @@ The native client is exposed to Lua through `require("mcp")` with:
 
 - `mcp.config()`
 - `mcp.servers()`
+- `mcp.diagnostics()`
 - `mcp.list_tools(server_id)`
 - `mcp.call_tool(server_id, tool_name, arguments)`
 
-The Lua tool registry exposes MCP tools as `<server>.<tool>`, so configured MCP tools work with existing `ask`, `chat`, and `agent` `--tool` flows. `doctor` includes MCP config, server diagnostics, and generated protocol metadata.
+The Lua tool registry exposes MCP tools as `<server>.<tool>`, so configured MCP tools work with existing `ask`, `chat`, and `agent` `--tool` flows. `doctor` now actively initializes each configured server, runs `tools/list`, and reports per-server initialize status plus discovered tool names alongside the MCP config report and generated protocol metadata.
 
 ## Schema Support
 

@@ -528,14 +528,122 @@ mcp.call_tool("docs", "lookup", { [0] = "bad" })
     EXPECT_THROW((void)yaaf::script::run_file(options), std::runtime_error);
 }
 
-TEST(McpDoctorMockTests, DoctorJsonIncludesMcpConfig)
+TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets)
 {
-    const auto workspace = std::filesystem::current_path();
-    TemporaryMcpConfig mcp_config{
-        workspace, nlohmann::json{{"servers", {{"docs", {{"type", "http"}, {"url", "https://example.test/mcp"}}}}}}};
+    const auto workspace = make_workspace("assistant_mcp_doctor_json_test");
+    const auto mcp_path = workspace / ".vscode" / "mcp.json";
+    write_mcp_config(workspace,
+                     nlohmann::json{{"servers",
+                                     {{"broken",
+                                       {{"type", "http"},
+                                        {"url", "https://broken.example.test/mcp"},
+                                        {"headers", {{"Authorization", "Bearer broken-secret"}}}}},
+                                      {"docs",
+                                       {{"type", "http"},
+                                        {"url", "https://docs.example.test/mcp"},
+                                        {"headers", {{"Authorization", "Bearer docs-secret"}}}}},
+                                      {"local",
+                                       {{"type", "stdio"},
+                                        {"env", {{"API_TOKEN", "stdio-secret"}}}}}}}});
 
     yaaf::cli::Services services;
-    services.mcp_http_post = [](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
+    services.mcp_http_post = [](std::string_view url, std::string_view body, std::string_view,
+                                const yaaf::mcp::Headers &) {
+        const auto request = nlohmann::json::parse(body);
+        const auto method = request.at("method").get<std::string>();
+        const auto url_string = std::string(url);
+
+        if (method == "initialize")
+        {
+            nlohmann::json payload;
+            payload["jsonrpc"] = "2.0";
+            payload["id"] = request.at("id");
+            payload["result"]["protocolVersion"] = "2025-06-18";
+            payload["result"]["capabilities"]["tools"] = nlohmann::json::object();
+            payload["result"]["serverInfo"] = {{"name", url_string.find("docs") != std::string::npos ? "docs" : "broken"},
+                                                {"version", "1"}};
+            return json_response(payload);
+        }
+        if (method == "notifications/initialized")
+        {
+            return HttpClient::Response{202, "", ""};
+        }
+        if (method == "tools/list" && url_string.find("docs") != std::string::npos)
+        {
+            nlohmann::json payload;
+            payload["jsonrpc"] = "2.0";
+            payload["id"] = request.at("id");
+            payload["result"]["tools"] = nlohmann::json::array(
+                {{{"name", "lookup"}, {"title", "Lookup"}, {"description", "Look up docs"}}});
+            return json_response(payload);
+        }
+        if (method == "tools/list" && url_string.find("broken") != std::string::npos)
+        {
+            return HttpClient::Response{503, "text/plain", "broken"};
+        }
+        return HttpClient::Response{500, "text/plain", "unexpected"};
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+    const auto exit_code =
+        yaaf::cli::run({"--mcp", mcp_path.string(), "doctor", "--format", "json"}, input, output, error_output,
+                       &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+
+    const auto payload = nlohmann::json::parse(output.str());
+    ASSERT_TRUE(payload.contains("mcp"));
+    EXPECT_TRUE(payload.at("mcp").at("exists"));
+    ASSERT_EQ(payload.at("mcp").at("servers").size(), 3U);
+
+    const auto &servers = payload.at("mcp").at("servers");
+    const auto find_server = [&](std::string_view id) -> const nlohmann::json & {
+        const auto found = std::find_if(servers.begin(), servers.end(), [&](const auto &server) {
+            return server.at("id").get<std::string>() == id;
+        });
+        EXPECT_NE(found, servers.end());
+        return *found;
+    };
+
+    const auto &broken = find_server("broken");
+    EXPECT_EQ(broken.at("config").at("headers").at("Authorization"), "<redacted>");
+    EXPECT_EQ(broken.at("active").at("initialize").at("status"), "ok");
+    EXPECT_EQ(broken.at("active").at("tools").at("status"), "failed");
+    EXPECT_NE(broken.at("active").at("tools").at("error").get<std::string>().find("status 503"), std::string::npos);
+
+    const auto &docs = find_server("docs");
+    EXPECT_EQ(docs.at("config").at("headers").at("Authorization"), "<redacted>");
+    EXPECT_EQ(docs.at("active").at("initialize").at("status"), "ok");
+    EXPECT_EQ(docs.at("active").at("initialize").at("protocol_version"), "2025-06-18");
+    EXPECT_EQ(docs.at("active").at("tools").at("status"), "ok");
+    EXPECT_EQ(docs.at("active").at("tools").at("count"), 1);
+    ASSERT_EQ(docs.at("active").at("tools").at("names").size(), 1U);
+    EXPECT_EQ(docs.at("active").at("tools").at("names").at(0), "docs.lookup");
+
+    const auto &local = find_server("local");
+    EXPECT_EQ(local.at("config").at("env").at("API_TOKEN"), "<redacted>");
+    EXPECT_EQ(local.at("active").at("initialize").at("status"), "failed");
+    EXPECT_NE(local.at("active").at("initialize").at("error").get<std::string>().find("unsupported MCP server"),
+              std::string::npos);
+}
+
+TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
+{
+    const auto workspace = make_workspace("assistant_mcp_doctor_text_test");
+    const auto mcp_path = workspace / ".vscode" / "mcp.json";
+    write_mcp_config(workspace,
+                     nlohmann::json{{"servers",
+                                     {{"docs",
+                                       {{"type", "http"},
+                                        {"url", "https://docs.example.test/mcp"},
+                                        {"headers", {{"Authorization", "Bearer docs-secret"}}}}}}}});
+
+    yaaf::cli::Services services;
+    services.mcp_http_post = [](std::string_view, std::string_view body, std::string_view,
+                                const yaaf::mcp::Headers &) {
         const auto request = nlohmann::json::parse(body);
         const auto method = request.at("method").get<std::string>();
         if (method == "initialize")
@@ -555,22 +663,19 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesMcpConfig)
         nlohmann::json payload;
         payload["jsonrpc"] = "2.0";
         payload["id"] = request.at("id");
-        payload["result"]["tools"] = nlohmann::json::array();
+        payload["result"]["tools"] =
+            nlohmann::json::array({{{"name", "lookup"}, {"title", "Lookup"}, {"description", "Look up docs"}}});
         return json_response(payload);
     };
 
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error_output;
-    const auto exit_code =
-        yaaf::cli::run({"--mcp", (workspace / ".vscode" / "mcp.json").string(), "doctor", "--format", "json"}, input,
-                       output, error_output, &services);
+    const auto exit_code = yaaf::cli::run({"--mcp", mcp_path.string(), "doctor"}, input, output, error_output,
+                                          &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
-    const auto payload = nlohmann::json::parse(output.str());
-    ASSERT_TRUE(payload.contains("mcp"));
-    EXPECT_TRUE(payload.at("mcp").at("exists"));
-    ASSERT_EQ(payload.at("mcp").at("servers").size(), 1U);
-    EXPECT_EQ(payload.at("mcp").at("servers").at(0).at("id"), "docs");
+    EXPECT_NE(output.str().find("initialize: ok (protocol 2025-06-18)"), std::string::npos);
+    EXPECT_NE(output.str().find("tools: 1 discovered: docs.lookup"), std::string::npos);
 }
