@@ -12,8 +12,7 @@ end
 
 local function default_openai_endpoint(requested_endpoint)
     local configured = os.getenv("YAAF_OPENAI_ENDPOINT") or ""
-    local ollama_default = yaaf.defaults.endpoint or ""
-    if requested_endpoint == nil or requested_endpoint == "" or requested_endpoint == ollama_default then
+    if requested_endpoint == nil or requested_endpoint == "" then
         if configured ~= "" then
             return configured
         end
@@ -21,7 +20,6 @@ local function default_openai_endpoint(requested_endpoint)
     end
     return requested_endpoint
 end
-
 local function default_openai_api_key(request)
     if request ~= nil and type(request.api_key) == "string" and request.api_key ~= "" then
         return request.api_key
@@ -66,16 +64,21 @@ local function decode_tool_arguments(arguments)
         return arguments
     end
 
-    if type(arguments) == "string" and arguments ~= "" then
-        local ok, decoded = pcall(json.decode, arguments)
-        if ok and type(decoded) == "table" then
-            return decoded
-        end
+    if arguments == nil or arguments == "" then
+        return {}
     end
 
-    return {}
-end
+    if type(arguments) ~= "string" then
+        error("openai tool call arguments must be a JSON object or JSON-encoded object string")
+    end
 
+    local ok, decoded = pcall(json.decode, arguments)
+    if not ok or type(decoded) ~= "table" then
+        error("openai tool call arguments must decode to a JSON object")
+    end
+
+    return decoded
+end
 local function flatten_message_content(content)
     if type(content) == "string" then
         return content
@@ -480,8 +483,8 @@ local function run_chat_completion(request)
             end,
         })
 
-        if not saw_stream_data and response.body ~= nil and response.body ~= "" then
-            if response.body:find("data:", 1, true) == 1 then
+        if not saw_stream_data then
+            if response.body ~= nil and response.body ~= "" and response.body:find("data:", 1, true) == 1 then
                 buffer = buffer .. response.body
                 buffer = consume_sse_buffer(buffer, function(decoded)
                     process_stream_payload(decoded, aggregate, request.on_stream)
@@ -490,7 +493,6 @@ local function run_chat_completion(request)
                 return normalize_chat_response(decode_response(response))
             end
         end
-
         if buffer ~= "" then
             local decoded = json.decode(buffer)
             process_stream_payload(decoded, aggregate, request.on_stream)
