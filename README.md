@@ -9,7 +9,7 @@ Yaaf is a command-line runtime for small AI workflows in Lua. You can use it as 
 
 The native layer handles startup, HTTP, JSON, and MCP transports. Lua handles commands, tools, agents, and provider logic, so you can start with copyable commands and then grow into custom workflows without changing runtimes.
 
-Current development and CI support cover Windows, macOS, and Ubuntu Linux. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution. The current runtime smoke matrix passes on Ubuntu 24.04 and records the expected glibc/libstdc++ compatibility failure on Ubuntu 22.04.
+Current development and CI support cover Windows, macOS, and Linux. The Linux release artifact is built as a musl-based static binary so the packaged `yaaf` runtime stays portable across mainstream Linux distributions. CI validates the packaged Linux bundle with the shipped `lua/` and `examples/` directories and smoke-tests it on both Alpine and Debian.
 
 ## What It Is Good At
 
@@ -91,6 +91,8 @@ yaaf run ./examples/example.lua one two three
 ## Build And Detailed Setup
 
 Build, environment setup, executable locations, and command reference live in [Usage](https://svnscha.github.io/yaaf/usage/). The full documentation index is at [https://svnscha.github.io/yaaf/](https://svnscha.github.io/yaaf/).
+
+For the Linux release path, use the musl static preset documented in [Usage](https://svnscha.github.io/yaaf/usage/). The validated local reproduction command is `cmake --preset linux-musl-static && cmake --build build/linux-musl-static --config Release --target yaaf`.
 
 Serve the docs locally with MkDocs:
 
