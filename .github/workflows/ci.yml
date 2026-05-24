@@ -153,6 +153,7 @@ jobs:
             clang18 \
             clang18-extra-tools \
             curl \
+            file \
             git \
             lld \
             lldb \
@@ -213,6 +214,13 @@ jobs:
           cp -R 'build/linux-musl-static/app/lua' "$package_dir/lua"
           cp -R 'build/linux-musl-static/app/examples' "$package_dir/examples"
 
+      - name: Verify Linux musl binary is statically linked
+        shell: bash
+        run: |
+          file_output="$(file build/package/yaaf-linux-musl-static-amd64/yaaf)"
+          printf '%s\n' "$file_output"
+          grep -q 'statically linked' <<<"$file_output"
+
       - name: Upload Linux musl bundle artifact
         uses: actions/upload-artifact@v7
         with:
@@ -223,6 +231,14 @@ jobs:
   linux-runtime-smoke:
     needs: linux-musl-build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: alpine:3.20
+            label: alpine-3.20
+          - image: debian:bookworm-slim
+            label: debian-bookworm-slim
 
     steps:
       - name: Download Linux bundle artifact
@@ -239,14 +255,14 @@ jobs:
           test -d runtime-smoke/yaaf-linux-musl-static-amd64/examples
           chmod +x runtime-smoke/yaaf-linux-musl-static-amd64/yaaf
 
-      - name: Smoke test Linux musl runtime on Alpine
+      - name: Smoke test Linux musl runtime on ${{ matrix.label }}
         shell: bash
         run: |
-          log_file="$RUNNER_TEMP/linux-runtime-alpine-3.20.log"
+          log_file="$RUNNER_TEMP/linux-runtime-${{ matrix.label }}.log"
           if docker run --rm \
             -v "${{ github.workspace }}/runtime-smoke/yaaf-linux-musl-static-amd64:/bundle:ro" \
             --workdir /bundle \
-            alpine:3.20 \
+            ${{ matrix.image }} \
             /bin/sh -lc '
               set -eu
               ./yaaf --help > /tmp/yaaf-help.txt
