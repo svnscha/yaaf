@@ -54,6 +54,7 @@ struct GlobalOptions
 {
     HttpClient::Options http;
     std::string mcp_config_path;
+    std::string mcp_config_path_env;
 };
 
 struct RunCommandOptions
@@ -295,14 +296,50 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
     }
 }
 
-[[nodiscard]] std::filesystem::path mcp_config_path_from_options(const nlohmann::json &options,
-                                                                 const GlobalOptions &global_options)
+[[nodiscard]] std::filesystem::path discover_workspace_mcp_config(const std::filesystem::path &workspace_root)
 {
+    if (workspace_root.empty())
+    {
+        return {};
+    }
+    auto candidate = workspace_root / ".yaaf" / "mcp.json";
+    std::error_code ec;
+    if (std::filesystem::is_regular_file(candidate, ec) && !ec)
+    {
+        return candidate;
+    }
+    return {};
+}
+
+[[nodiscard]] std::filesystem::path resolve_mcp_config_path(const std::filesystem::path &explicit_path,
+                                                            const std::filesystem::path &env_path,
+                                                            const std::filesystem::path &workspace_root)
+{
+    if (!explicit_path.empty())
+    {
+        return absolute_path(explicit_path);
+    }
+    if (!env_path.empty())
+    {
+        return absolute_path(env_path);
+    }
+    return discover_workspace_mcp_config(workspace_root);
+}
+
+[[nodiscard]] std::filesystem::path mcp_config_path_from_options(const nlohmann::json &options,
+                                                                 const GlobalOptions &global_options,
+                                                                 const std::filesystem::path &workspace_root)
+{
+    std::filesystem::path explicit_path;
     if (const auto entry = options.find("mcp"); entry != options.end() && entry->is_string() && !entry->empty())
     {
-        return absolute_path(entry->get<std::string>());
+        explicit_path = entry->get<std::string>();
     }
-    return absolute_path(global_options.mcp_config_path);
+    if (explicit_path.empty())
+    {
+        explicit_path = global_options.mcp_config_path;
+    }
+    return resolve_mcp_config_path(explicit_path, global_options.mcp_config_path_env, workspace_root);
 }
 
 [[nodiscard]] nlohmann::json parsed_lua_options(const LuaCommand &command)
@@ -475,7 +512,7 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
         environment_or_dotenv(dotenv, "OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
     GlobalOptions global_options;
     global_options.http.proxy = environment_or_dotenv(dotenv, "YAAF_PROXY");
-    global_options.mcp_config_path = environment_or_dotenv(dotenv, "YAAF_MCP_FILE").value_or("");
+    global_options.mcp_config_path_env = environment_or_dotenv(dotenv, "YAAF_MCP_FILE").value_or("");
     global_options.http.allow_invalid_proxy_certificates =
         global_options.http.proxy.has_value() && !global_options.http.proxy->empty();
 
@@ -546,14 +583,12 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
             script_options.model = std::string(kDefaultOllamaModel);
             script_options.file = run_command.file;
             script_options.arguments = normalize_script_arguments(run_command.arguments);
-            if (!run_command.mcp_config_path.empty())
-            {
-                script_options.mcp_config_path = absolute_path(run_command.mcp_config_path);
-            }
-            else if (!global_options.mcp_config_path.empty())
-            {
-                script_options.mcp_config_path = absolute_path(global_options.mcp_config_path);
-            }
+            const auto workspace_root = std::filesystem::current_path();
+            const std::filesystem::path run_explicit_path =
+                !run_command.mcp_config_path.empty() ? std::filesystem::path(run_command.mcp_config_path)
+                                                     : std::filesystem::path(global_options.mcp_config_path);
+            script_options.mcp_config_path =
+                resolve_mcp_config_path(run_explicit_path, global_options.mcp_config_path_env, workspace_root);
             return run_script(script_options, global_options, input, output, services);
         }
 
@@ -564,7 +599,8 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
             script_options.model = std::string(kDefaultOllamaModel);
             script_options.file = lua_command->file.string();
             script_options.options = parsed_lua_options(*lua_command);
-            script_options.mcp_config_path = mcp_config_path_from_options(script_options.options, global_options);
+            script_options.mcp_config_path =
+                mcp_config_path_from_options(script_options.options, global_options, std::filesystem::current_path());
             script_options.positionals = parsed_lua_positionals(*lua_command);
             return run_script(script_options, global_options, input, output, services);
         }
