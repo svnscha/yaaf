@@ -15,7 +15,9 @@ RUN apk add --no-cache \
         git \
         lld \
         lldb \
+        linux-headers \
         ninja-build \
+        perl \
         pkgconf \
         py3-pip \
         py3-virtualenv \
