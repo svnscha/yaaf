@@ -93,7 +93,7 @@ Run them with `uv --directory ./mcp-servers run python <server>.py` plus the HTT
 
 Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra Linux-only prerequisites for the stdio fixture tests beyond having `uv` available.
 
-The stdio tests write a VS Code-shaped MCP JSON file and pass it explicitly so the yaaf runtime starts the server from that config, matching the user-facing flow. HTTP and SSE tests expect the fixture servers to be prestarted, usually through `docker compose -f docker-compose.mitmproxy.yml up`, and read fixture endpoint overrides from test-only `.env`/environment variables.
+The stdio tests write a VS Code-shaped MCP JSON file and pass it explicitly so the yaaf runtime starts the server from that config, matching the user-facing flow. HTTP and SSE tests expect the local Docker test stack to be prestarted, usually through `docker compose -f docker-compose.test-stack.yml up`, and read fixture endpoint overrides from test-only `.env`/environment variables.
 
 ## Lua And CLI Integration
 

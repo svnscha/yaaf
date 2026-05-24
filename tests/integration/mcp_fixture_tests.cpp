@@ -264,7 +264,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedHttpServer)
     const auto mcp_url = configured_mcp_url(dotenv, "YAAF_MCP_HELLO_HTTP_URL", "http://127.0.0.1:39231/mcp");
     if (!http_fixture_available(mcp_url))
     {
-        GTEST_SKIP() << "start the hello HTTP MCP fixture with docker compose -f docker-compose.mitmproxy.yml up";
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
     }
 
     write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "http"}, {"url", mcp_url}}}}}});
@@ -285,7 +285,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedSseServer)
     const auto mcp_url = configured_mcp_url(dotenv, "YAAF_MCP_HELLO_SSE_URL", "http://127.0.0.1:39232/mcp");
     if (!http_fixture_available(mcp_url))
     {
-        GTEST_SKIP() << "start the hello SSE MCP fixture with docker compose -f docker-compose.mitmproxy.yml up";
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
     }
 
     write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "sse"}, {"url", mcp_url}}}}}});

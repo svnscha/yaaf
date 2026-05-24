@@ -60,6 +60,47 @@ namespace yaaf::tests
     return options;
 }
 
+[[nodiscard]] inline std::string runtime_fixture_url(std::string_view key, std::string fallback)
+{
+    const auto dotenv = load_runtime_dotenv();
+    return runtime_env_value(dotenv, key).value_or(std::move(fallback));
+}
+
+[[nodiscard]] inline std::string join_fixture_url(std::string base_url, std::string_view path)
+{
+    if (base_url.empty())
+    {
+        return std::string(path);
+    }
+
+    if (!path.empty() && path.front() != '/' && !base_url.ends_with('/'))
+    {
+        base_url.push_back('/');
+    }
+    else if (!path.empty() && path.front() == '/' && base_url.ends_with('/'))
+    {
+        base_url.pop_back();
+    }
+
+    base_url.append(path);
+    return base_url;
+}
+
+[[nodiscard]] inline std::string runtime_httpbin_base_url()
+{
+    return runtime_fixture_url("YAAF_HTTPBIN_URL", "http://127.0.0.1:18082");
+}
+
+[[nodiscard]] inline std::string runtime_httpbin_proxied_base_url()
+{
+    return runtime_fixture_url("YAAF_HTTPBIN_PROXIED_URL", "http://host.docker.internal:18082");
+}
+
+[[nodiscard]] inline std::string runtime_httpbin_url(std::string_view path)
+{
+    return join_fixture_url(runtime_httpbin_base_url(), path);
+}
+
 [[nodiscard]] inline bool is_loopback_url(std::string_view url)
 {
     return url.starts_with("http://127.") || url.starts_with("https://127.") || url.starts_with("http://localhost") ||

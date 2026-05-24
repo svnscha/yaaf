@@ -1,15 +1,16 @@
 # MCP HTTP And SSE Fixtures
 
-Start mitmproxy plus the HTTP and SSE MCP fixtures:
+Start the local Docker test stack with `httpbin`, mitmproxy, and the HTTP/SSE MCP fixtures:
 
 ```powershell
-docker compose -f docker-compose.mitmproxy.yml up
+docker compose -f docker-compose.test-stack.yml up
 ```
 
 Put fixture URLs in `.env` for repeated local runs:
 
 ```text
 YAAF_PROXY=http://127.0.0.1:18080
+YAAF_HTTPBIN_URL=http://127.0.0.1:18082
 YAAF_MCP_FILE=./configs/hello-http.mcp.json
 ```
 
