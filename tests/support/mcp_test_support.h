@@ -207,7 +207,7 @@ inline void write_runtime_dotenv(const std::filesystem::path &workspace)
     }
 
     std::ofstream output{workspace / ".env"};
-    output << "OLLAMA_ENDPOINT=http://127.0.0.1:11434\n";
+    output << "YAAF_OLLAMA_ENDPOINT=http://127.0.0.1:11434\n";
     output << "YAAF_PROXY=http://127.0.0.1:18080\n";
 }
 

@@ -11,7 +11,7 @@ constexpr std::string_view kDefaultOllamaModel = "qwen3:0.6b";
 
 [[nodiscard]] std::string runtime_ollama_endpoint(const yaaf::dotenv::EnvironmentFile &dotenv)
 {
-    return yaaf::tests::runtime_env_value(dotenv, "OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
+    return yaaf::tests::runtime_env_value(dotenv, "YAAF_OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
 }
 
 [[nodiscard]] std::string runtime_ollama_model(const yaaf::dotenv::EnvironmentFile &dotenv)

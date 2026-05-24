@@ -47,17 +47,17 @@ TEST(DotenvTests, LoadParsesBasicEntriesQuotesAndOverrides)
     {
         std::ofstream output(env_path);
         output << "# comment\n";
-        output << "OLLAMA_ENDPOINT=http://localhost:11434\n";
-        output << " export OLLAMA_MODEL = \"qwen3:0.6b\"\n";
-        output << "OLLAMA_MODEL=nomic-embed-text:v1.5\n";
+        output << "YAAF_OLLAMA_ENDPOINT=http://localhost:11434\n";
+        output << " export YAAF_OLLAMA_MODEL = \"qwen3:0.6b\"\n";
+        output << "YAAF_OLLAMA_MODEL=nomic-embed-text:v1.5\n";
         output << "EMPTY_VALUE=\n";
     }
 
     const auto dotenv = yaaf::dotenv::EnvironmentFile::load(env_path.string());
 
     EXPECT_FALSE(dotenv.empty());
-    EXPECT_EQ(dotenv.get("OLLAMA_ENDPOINT"), std::optional<std::string>{"http://localhost:11434"});
-    EXPECT_EQ(dotenv.get("OLLAMA_MODEL"), std::optional<std::string>{"nomic-embed-text:v1.5"});
+    EXPECT_EQ(dotenv.get("YAAF_OLLAMA_ENDPOINT"), std::optional<std::string>{"http://localhost:11434"});
+    EXPECT_EQ(dotenv.get("YAAF_OLLAMA_MODEL"), std::optional<std::string>{"nomic-embed-text:v1.5"});
     EXPECT_EQ(dotenv.get("EMPTY_VALUE"), std::optional<std::string>{""});
     EXPECT_FALSE(dotenv.contains("MISSING_KEY"));
 
@@ -72,14 +72,14 @@ TEST(DotenvTests, LoadFromParentsFindsNearestAncestorFile)
 
     {
         std::ofstream output(root / ".env");
-        output << "OLLAMA_ENDPOINT=https://example.invalid\n";
+        output << "YAAF_OLLAMA_ENDPOINT=https://example.invalid\n";
     }
 
     {
         const ScopedCurrentPath scoped_path(nested);
         const auto dotenv = yaaf::dotenv::EnvironmentFile::load_from_parents();
 
-        EXPECT_EQ(dotenv.get("OLLAMA_ENDPOINT"), std::optional<std::string>{"https://example.invalid"});
+        EXPECT_EQ(dotenv.get("YAAF_OLLAMA_ENDPOINT"), std::optional<std::string>{"https://example.invalid"});
     }
 
     std::filesystem::remove_all(root);
@@ -90,8 +90,8 @@ TEST(DotenvTests, LoadMissingFileReturnsEmptyEnvironment)
     const auto dotenv = yaaf::dotenv::EnvironmentFile::load("this-file-does-not-exist.env");
 
     EXPECT_TRUE(dotenv.empty());
-    EXPECT_FALSE(dotenv.contains("OLLAMA_ENDPOINT"));
-    EXPECT_EQ(dotenv.get("OLLAMA_ENDPOINT"), std::nullopt);
+    EXPECT_FALSE(dotenv.contains("YAAF_OLLAMA_ENDPOINT"));
+    EXPECT_EQ(dotenv.get("YAAF_OLLAMA_ENDPOINT"), std::nullopt);
 }
 
 TEST(DotenvTests, LoadIgnoresMalformedLinesAndEmptyKeys)
@@ -126,7 +126,7 @@ TEST(DotenvTests, LoadFromParentsReturnsEmptyWhenNoFileExists)
         const auto dotenv = yaaf::dotenv::EnvironmentFile::load_from_parents();
 
         EXPECT_TRUE(dotenv.empty());
-        EXPECT_EQ(dotenv.get("OLLAMA_ENDPOINT"), std::nullopt);
+        EXPECT_EQ(dotenv.get("YAAF_OLLAMA_ENDPOINT"), std::nullopt);
     }
 
     std::filesystem::remove_all(root);
