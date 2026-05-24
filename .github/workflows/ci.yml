@@ -136,13 +136,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Checkout vcpkg
-        uses: actions/checkout@v6
-        with:
-          repository: microsoft/vcpkg
-          ref: e5a4f54c0d562059e9ccc6f7e7150667da58fe41
-          path: vcpkg
-
       - name: Install Linux musl build dependencies
         shell: sh
         run: |
@@ -185,9 +178,9 @@ jobs:
           ln -sf /usr/local/bin/ninja /usr/bin/ninja
           rm -rf /tmp/ninja-src.tar.gz /tmp/ninja-1.13.2
 
-      - name: Bootstrap vcpkg
+      - name: Set up vcpkg
         shell: bash
-        run: ./vcpkg/bootstrap-vcpkg.sh
+        run: bash ./.devcontainer/setup-vcpkg.sh
 
       - name: Configure CMake
         shell: bash
