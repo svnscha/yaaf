@@ -25,6 +25,18 @@ local function collect_agents()
     return result
 end
 
+local function collect_mcp_report()
+    local report = mcp.config()
+    local active_by_id = {}
+    for _, diagnostic in ipairs(mcp.diagnostics()) do
+        active_by_id[diagnostic.id] = diagnostic
+    end
+    for _, server in ipairs(report.servers or {}) do
+        server.active = active_by_id[server.id]
+    end
+    return report
+end
+
 local function collect_report()
     return {
         environment = {
@@ -37,7 +49,7 @@ local function collect_report()
             tools = collect_tools(),
             tool_providers = tool.providers(),
         },
-        mcp = mcp.config(),
+        mcp = collect_mcp_report(),
         app_modes = {
             ask = { tools = true },
             chat = { tools = true },
@@ -45,6 +57,34 @@ local function collect_report()
             embed = { tools = false },
         },
     }
+end
+
+local function format_initialize_status(server)
+    local active = server.active or {}
+    local initialize = active.initialize or {}
+    if initialize.status == "ok" then
+        local protocol_version = initialize.protocol_version or ""
+        if protocol_version ~= "" then
+            return "ok (protocol " .. protocol_version .. ")"
+        end
+        return "ok"
+    end
+    local error_message = initialize.error or "active MCP initialization failed"
+    return "failed - " .. error_message
+end
+
+local function format_tool_status(server)
+    local active = server.active or {}
+    local tools = active.tools or {}
+    if tools.status == "ok" then
+        local names = tools.names or {}
+        if #names == 0 then
+            return tostring(tools.count or 0) .. " discovered"
+        end
+        return tostring(tools.count or #names) .. " discovered: " .. table.concat(names, ", ")
+    end
+    local error_message = tools.error or "MCP tool discovery failed"
+    return "failed - " .. error_message
 end
 
 local function print_text(report)
@@ -87,6 +127,8 @@ local function print_text(report)
             for _, diagnostic in ipairs(server.diagnostics or {}) do
                 print("    warning: " .. diagnostic)
             end
+            print("    initialize: " .. format_initialize_status(server))
+            print("    tools: " .. format_tool_status(server))
         end
     end
 

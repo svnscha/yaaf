@@ -21,6 +21,9 @@ Current development and CI support cover Windows, macOS, and Ubuntu Linux. The f
 
 ## Quick Start
 
+When MCP is configured, `yaaf doctor` now performs an active initialize and `tools/list` check for each server and reports the discovered tool names or a failure reason.
+
+
 These examples assume `yaaf` is already built and the build output directory is on `PATH`.
 
 Ask a quick question:
@@ -47,7 +50,7 @@ Request JSON output for automation:
 yaaf ask --format json --pretty "Return a JSON object with answer equal to 2."
 ```
 
-Inspect your current runtime configuration:
+Inspect your current runtime configuration and actively probe configured MCP servers:
 
 ```powershell
 yaaf doctor --format json --pretty
@@ -70,7 +73,7 @@ yaaf agent --name react --tool echo "Use the echo tool to repeat hello."
 Point yaaf at an explicit MCP config and call a remote tool:
 
 ```powershell
-yaaf ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps."
+yaaf ask --mcp ./configs/docs.mcp.json --tool docs.lookup "Look up the install steps."
 ```
 
 Run a Lua script directly when you want full control over the workflow:

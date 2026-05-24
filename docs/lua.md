@@ -30,11 +30,11 @@ The built-in Lua commands are:
 - `chat`: interactive chat flow, streaming, and tool calls.
 - `agent`: native agent entry point with Lua tool registry integration.
 - `embed`: embedding requests.
-- `doctor`: environment, registry, and MCP diagnostics.
+- `doctor`: environment, registry, active MCP connectivity, and tool-discovery diagnostics.
 
 `ask`, `chat`, `agent`, and `run` each accept `--mcp`. The root CLI also accepts `--mcp` as a global option.
 
-The command implementation lives in Lua, but the expensive or stateful operations stay native. For example, `ask.lua` parses command options and decides whether tools are enabled, then calls the `llm` and `json` modules. `doctor.lua` is also Lua; it gathers runtime defaults, registries, and MCP config state through public modules.
+The command implementation lives in Lua, but the expensive or stateful operations stay native. For example, `ask.lua` parses command options and decides whether tools are enabled, then calls the `llm` and `json` modules. `doctor.lua` is also Lua; it gathers runtime defaults, registries, MCP config state, and active MCP diagnostics through public modules.
 
 ## Runtime Modules
 
@@ -69,6 +69,7 @@ local mcp = require("mcp")
 
 local config = mcp.config()
 local servers = mcp.servers()
+local diagnostics = mcp.diagnostics()
 local tools = mcp.list_tools("docs")
 local result = mcp.call_tool("docs", "lookup", { query = "install" })
 ```

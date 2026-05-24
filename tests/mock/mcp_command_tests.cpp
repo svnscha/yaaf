@@ -60,7 +60,7 @@ TEST(McpCommandMockTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConfig)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool",
+        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
                         "hello.hello", "Say", "hello", "through", "MCP"},
                        input, output, error_output, &services);
 
@@ -125,7 +125,7 @@ TEST(McpCommandMockTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceConfig)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"chat", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.repeat"},
+        yaaf::cli::run({"chat", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool", "hello.repeat"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -192,7 +192,7 @@ TEST(McpCommandMockTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceConfig)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool",
+        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
                         "hello.repeat", "Repeat hi through MCP"},
                        input, output, error_output, &services);
 

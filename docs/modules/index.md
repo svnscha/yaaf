@@ -29,6 +29,6 @@ Files under `lua/cli/` become top-level CLI subcommands when `yaaf` starts and c
 - `lua/cli/chat.lua`: `chat`, an interactive chat command. It supports an optional first prompt, streaming, thinking output, and registered tools.
 - `lua/cli/agent.lua`: `agent`, an agent runner. It selects an agent, configures model and turn limits, and passes selected tools to the agent.
 - `lua/cli/embed.lua`: `embed`, an embeddings command for one or more inputs. It supports model and endpoint overrides, dimensionality overrides, truncation control, and JSON output.
-- `lua/cli/doctor.lua`: `doctor`, a diagnostics command. It reports runtime defaults, registered agents, registered tools, MCP config state, and app modes.
+- `lua/cli/doctor.lua`: `doctor`, a diagnostics command. It reports runtime defaults, registered agents, registered tools, MCP config state, active MCP initialize and tool-discovery results, and app modes.
 
 The app target copies `lua/` and `examples/` beside `yaaf` after every build, so command modules and examples are available from the deployed layout.

@@ -22,7 +22,7 @@ TEST(McpClientIntegrationTests, NativeClientListsAndCallsRealUvStdioServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
@@ -101,7 +101,7 @@ for line in sys.stdin:
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     yaaf::mcp::Client client{options};
 
     const auto result = client.call_tool("env", "env_values", nlohmann::json::object());
@@ -133,7 +133,7 @@ print(result.content)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"run", "--mcp", (workspace / ".vscode" / "mcp.json").string(), script_path.string()}, input,
+        yaaf::cli::run({"run", "--mcp", (workspace_mcp_config_path(workspace)).string(), script_path.string()}, input,
                        output, error_output);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);

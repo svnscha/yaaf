@@ -14,6 +14,7 @@ local mcp = require("mcp")
 
 - `mcp.config()`: returns the active MCP config report.
 - `mcp.servers()`: returns `{ id, type, supported, diagnostics }` entries.
+- `mcp.diagnostics()`: returns per-server active initialize and tool-discovery results for doctor-style troubleshooting.
 - `mcp.list_tools(server_id)`: returns tool descriptors for one supported server.
 - `mcp.call_tool(server_id, tool_name, arguments)`: calls a tool and returns `{ tool_name, content, success, metadata }`.
 
@@ -25,4 +26,4 @@ for _, server in ipairs(mcp.servers()) do
 end
 ```
 
-Use the higher-level [tool](tool.md) registry when you want MCP tools to appear beside local and script-registered tools.
+Use `mcp.diagnostics()` when you want a structured active connectivity check without invoking a tool. Use the higher-level [tool](tool.md) registry when you want MCP tools to appear beside local and script-registered tools.

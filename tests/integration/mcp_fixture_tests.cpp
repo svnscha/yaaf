@@ -18,7 +18,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsRealUvStdioServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
@@ -79,7 +79,7 @@ TEST(McpFixtureIntegrationTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConf
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool",
+        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
                         "hello.hello", "Say", "hello", "through", "MCP"},
                        input, output, error_output, &services);
 
@@ -144,7 +144,7 @@ TEST(McpFixtureIntegrationTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceCon
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"chat", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.repeat"},
+        yaaf::cli::run({"chat", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool", "hello.repeat"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -211,7 +211,7 @@ TEST(McpFixtureIntegrationTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceCo
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool",
+        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
                         "hello.repeat", "Repeat hi through MCP"},
                        input, output, error_output, &services);
 
@@ -248,7 +248,7 @@ print(result.content)
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"run", "--mcp", (workspace / ".vscode" / "mcp.json").string(), script_path.string()}, input,
+        yaaf::cli::run({"run", "--mcp", (workspace_mcp_config_path(workspace)).string(), script_path.string()}, input,
                        output, error_output);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -271,7 +271,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedHttpServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
@@ -292,7 +292,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedSseServer)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");

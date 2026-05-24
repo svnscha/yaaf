@@ -5,8 +5,13 @@ using namespace yaaf::tests::mcp;
 TEST(McpConfigTests, EmptyPathLeavesMcpUnconfigured)
 {
     const auto workspace = make_workspace("assistant_mcp_unconfigured_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"docs", {{"type", "http"}, {"url", "https://example.test/mcp"}}}}}});
+    const auto config_directory = workspace / "configs";
+    std::filesystem::create_directories(config_directory);
+    {
+        std::ofstream output{config_directory / "mcp.json"};
+        output << nlohmann::json{{"servers", {{"docs", {{"type", "http"}, {"url", "https://example.test/mcp"}}}}}}
+                      .dump(2);
+    }
 
     const auto loaded_config = yaaf::mcp::load_config(workspace);
 
@@ -16,7 +21,7 @@ TEST(McpConfigTests, EmptyPathLeavesMcpUnconfigured)
     EXPECT_TRUE(loaded_config.diagnostics.empty());
 }
 
-TEST(McpConfigTests, LoadsExplicitVsCodeMcpJsonShape)
+TEST(McpConfigTests, LoadsExplicitWorkspaceMcpJsonWithVsCodeShape)
 {
     const auto workspace = make_workspace("assistant_mcp_config_test");
     nlohmann::json config_json;
@@ -27,7 +32,7 @@ TEST(McpConfigTests, LoadsExplicitVsCodeMcpJsonShape)
         {"type", "stdio"}, {"command", "npx"}, {"args", nlohmann::json::array({"-y", "@playwright/mcp"})}};
     write_mcp_config(workspace, config_json);
 
-    const auto loaded_config = yaaf::mcp::load_config(workspace, workspace / ".vscode" / "mcp.json");
+    const auto loaded_config = yaaf::mcp::load_config(workspace, workspace_mcp_config_path(workspace));
 
     ASSERT_TRUE(loaded_config.exists);
     ASSERT_EQ(loaded_config.servers.size(), 2U);
@@ -82,15 +87,15 @@ TEST(McpConfigTests, ReportsMalformedConfigAndServerDiagnostics)
     const auto workspace = make_workspace("assistant_mcp_malformed_config_test");
 
     {
-        std::ofstream output{workspace / ".vscode" / "mcp.json"};
+        std::ofstream output{workspace_mcp_config_path(workspace)};
         output << R"json({ "servers": )json";
     }
-    auto loaded_config = yaaf::mcp::load_config(workspace, workspace / ".vscode" / "mcp.json");
+    auto loaded_config = yaaf::mcp::load_config(workspace, workspace_mcp_config_path(workspace));
     ASSERT_FALSE(loaded_config.diagnostics.empty());
     EXPECT_NE(loaded_config.diagnostics.front().find("parse failed"), std::string::npos);
 
     write_mcp_config(workspace, nlohmann::json{{"notServers", true}});
-    loaded_config = yaaf::mcp::load_config(workspace, workspace / ".vscode" / "mcp.json");
+    loaded_config = yaaf::mcp::load_config(workspace, workspace_mcp_config_path(workspace));
     ASSERT_FALSE(loaded_config.diagnostics.empty());
     EXPECT_EQ(loaded_config.diagnostics.front(), "MCP config must contain a servers object");
 
@@ -103,7 +108,7 @@ TEST(McpConfigTests, ReportsMalformedConfigAndServerDiagnostics)
                                                           {"url", "https://example.test/${input:TOKEN}"}};
     write_mcp_config(workspace, config_json);
 
-    loaded_config = yaaf::mcp::load_config(workspace, workspace / ".vscode" / "mcp.json");
+    loaded_config = yaaf::mcp::load_config(workspace, workspace_mcp_config_path(workspace));
 
     ASSERT_EQ(loaded_config.servers.size(), 5U);
     EXPECT_NE(loaded_config.servers[0].diagnostics.front().find("HTTP MCP server requires url"), std::string::npos);
@@ -133,7 +138,7 @@ TEST(McpConfigTests, ExpandsVariablesRedactsSecretsAndReportsInvalidServers)
     config_json["servers"]["workspaceServer"] = {{"type", "http"}, {"url", "${workspaceFolder}/mcp"}};
     write_mcp_config(workspace, config_json);
 
-    const auto loaded_config = yaaf::mcp::load_config(workspace, workspace / ".vscode" / "mcp.json");
+    const auto loaded_config = yaaf::mcp::load_config(workspace, workspace_mcp_config_path(workspace));
     const auto report = yaaf::mcp::config_to_json(loaded_config);
 
     ASSERT_EQ(loaded_config.servers.size(), 3U);

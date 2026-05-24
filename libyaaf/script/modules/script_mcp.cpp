@@ -83,6 +83,19 @@ int lua_servers(lua_State *state)
     }
 }
 
+int lua_diagnostics(lua_State *state)
+{
+    try
+    {
+        push_json(state, client(context(state)).diagnose_servers());
+        return 1;
+    }
+    catch (const std::exception &error)
+    {
+        throw_lua_error(state, error.what());
+    }
+}
+
 int lua_list_tools(lua_State *state)
 {
     try
@@ -144,6 +157,8 @@ int open_mcp_module(lua_State *state)
     lua_setfield(state, -2, "config");
     push_mcp_function(state, runtime, lua_servers);
     lua_setfield(state, -2, "servers");
+    push_mcp_function(state, runtime, lua_diagnostics);
+    lua_setfield(state, -2, "diagnostics");
     push_mcp_function(state, runtime, lua_list_tools);
     lua_setfield(state, -2, "list_tools");
     push_mcp_function(state, runtime, lua_call_tool);

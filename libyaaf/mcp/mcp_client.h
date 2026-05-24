@@ -64,6 +64,7 @@ class Client
   public:
     explicit Client(ClientOptions options);
     [[nodiscard]] Config config() const;
+    [[nodiscard]] nlohmann::json diagnose_servers();
     [[nodiscard]] std::vector<ToolDescriptor> list_tools(const std::string &server_id);
     [[nodiscard]] ToolResult call_tool(const std::string &server_id, const std::string &tool_name,
                                        const nlohmann::json &arguments);

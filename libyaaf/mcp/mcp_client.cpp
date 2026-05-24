@@ -392,6 +392,18 @@ class StdioTransport final : public Transport
     return joined;
 }
 
+[[nodiscard]] nlohmann::json tool_to_json(const ToolDescriptor &tool)
+{
+    return nlohmann::json{{"server_id", tool.server_id},
+                          {"name", tool.name},
+                          {"local_name", tool.local_name},
+                          {"title", tool.title},
+                          {"description", tool.description},
+                          {"inputSchema", tool.input_schema},
+                          {"outputSchema", tool.output_schema},
+                          {"annotations", tool.annotations}};
+}
+
 [[nodiscard]] std::filesystem::path resolve_config_path(const std::filesystem::path &workspace_root,
                                                         const std::filesystem::path &config_path)
 {
@@ -543,6 +555,64 @@ class Client::Impl
         return config_;
     }
 
+    [[nodiscard]] nlohmann::json diagnose_servers()
+    {
+        auto payload = nlohmann::json::array();
+        for (const auto &server : config_.servers)
+        {
+            auto entry = nlohmann::json{{"id", server.id},
+                                        {"type", server.type},
+                                        {"supported", server.supported},
+                                        {"initialize",
+                                         {{"status", "failed"},
+                                          {"error", ""},
+                                          {"protocol_version", ""},
+                                          {"server_info", nlohmann::json::object()}}},
+                                        {"tools",
+                                         {{"status", "failed"},
+                                          {"error", ""},
+                                          {"count", 0},
+                                          {"names", nlohmann::json::array()},
+                                          {"discovered", nlohmann::json::array()}}}};
+
+            try
+            {
+                auto &session = ensure_session(server.id);
+                entry["initialize"]["status"] = "ok";
+                entry["initialize"]["protocol_version"] = session.protocol_version;
+                entry["initialize"]["server_info"] = session.server_info;
+
+                try
+                {
+                    const auto tools = list_tools(server.id);
+                    auto names = nlohmann::json::array();
+                    auto discovered = nlohmann::json::array();
+                    for (const auto &tool : tools)
+                    {
+                        names.push_back(tool.local_name);
+                        discovered.push_back(tool_to_json(tool));
+                    }
+                    entry["tools"]["status"] = "ok";
+                    entry["tools"]["count"] = tools.size();
+                    entry["tools"]["names"] = std::move(names);
+                    entry["tools"]["discovered"] = std::move(discovered);
+                }
+                catch (const std::exception &error)
+                {
+                    entry["tools"]["error"] = error.what();
+                }
+            }
+            catch (const std::exception &error)
+            {
+                entry["initialize"]["error"] = error.what();
+                entry["tools"]["error"] = fmt::format("initialize failed: {}", error.what());
+            }
+
+            payload.push_back(std::move(entry));
+        }
+        return payload;
+    }
+
     [[nodiscard]] std::vector<ToolDescriptor> list_tools(const std::string &server_id)
     {
         auto &session = ensure_session(server_id);
@@ -618,6 +688,8 @@ class Client::Impl
     {
         std::unique_ptr<Transport> transport;
         std::shared_ptr<const schema::Backend> schema_backend;
+        std::string protocol_version;
+        nlohmann::json server_info = nlohmann::json::object();
     };
 
     static void require_method(const Session &session, std::string_view method)
@@ -670,6 +742,8 @@ class Client::Impl
             {
                 throw std::runtime_error(fmt::format("unsupported MCP protocol version: {}", protocol_version));
             }
+            session.protocol_version = protocol_version;
+            session.server_info = initialize.value("serverInfo", nlohmann::json::object());
             transport->set_protocol_version(protocol_version);
             transport->notify(make_notification("notifications/initialized"));
             session.transport = std::move(transport);
@@ -689,6 +763,8 @@ class Client::Impl
             {
                 throw std::runtime_error(fmt::format("unsupported MCP protocol version: {}", protocol_version));
             }
+            session.protocol_version = protocol_version;
+            session.server_info = initialize.value("serverInfo", nlohmann::json::object());
             session.transport->notify(make_notification("notifications/initialized"));
         }
 
@@ -710,6 +786,11 @@ Client::Client(ClientOptions options) : impl_(std::make_shared<Impl>(std::move(o
 Config Client::config() const
 {
     return impl_->config();
+}
+
+nlohmann::json Client::diagnose_servers()
+{
+    return impl_->diagnose_servers();
 }
 
 std::vector<ToolDescriptor> Client::list_tools(const std::string &server_id)

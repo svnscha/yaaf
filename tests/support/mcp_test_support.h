@@ -12,6 +12,11 @@
 
 namespace yaaf::tests::mcp
 {
+[[nodiscard]] inline std::filesystem::path workspace_mcp_config_path(const std::filesystem::path &workspace)
+{
+    return workspace / ".yaaf" / "mcp.json";
+}
+
 class CurrentPathGuard
 {
   public:
@@ -34,7 +39,7 @@ class TemporaryMcpConfig
 {
   public:
     TemporaryMcpConfig(std::filesystem::path workspace, const nlohmann::json &config)
-        : path_(std::move(workspace) / ".vscode" / "mcp.json")
+        : path_(workspace_mcp_config_path(std::move(workspace)))
     {
         if (std::filesystem::exists(path_))
         {
@@ -71,13 +76,13 @@ class TemporaryMcpConfig
 {
     auto path = std::filesystem::temp_directory_path() / name;
     std::filesystem::remove_all(path);
-    std::filesystem::create_directories(path / ".vscode");
+    std::filesystem::create_directories(path / ".yaaf");
     return path;
 }
 
 inline void write_mcp_config(const std::filesystem::path &workspace, const nlohmann::json &config)
 {
-    std::ofstream output{workspace / ".vscode" / "mcp.json"};
+    std::ofstream output{workspace_mcp_config_path(workspace)};
     output << config.dump(2);
 }
 
