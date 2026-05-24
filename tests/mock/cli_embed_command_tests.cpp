@@ -7,6 +7,86 @@
 
 namespace
 {
+class ScopedEnvironmentVariable
+{
+  public:
+    ScopedEnvironmentVariable(std::string name, std::string value) : name_(std::move(name))
+    {
+        if (const auto *current = std::getenv(name_.c_str()); current != nullptr)
+        {
+            original_ = current;
+        }
+        set(value);
+    }
+
+    ~ScopedEnvironmentVariable()
+    {
+        if (original_.has_value())
+        {
+            set(*original_);
+        }
+        else
+        {
+            unset();
+        }
+    }
+
+  private:
+    void set(const std::string &value) const
+    {
+#ifdef _WIN32
+        _putenv_s(name_.c_str(), value.c_str());
+#else
+        setenv(name_.c_str(), value.c_str(), 1);
+#endif
+    }
+
+    void unset() const
+    {
+#ifdef _WIN32
+        _putenv_s(name_.c_str(), "");
+#else
+        unsetenv(name_.c_str());
+#endif
+    }
+
+    std::string name_;
+    std::optional<std::string> original_;
+};
+
+class ScopedCurrentPath
+{
+  public:
+    explicit ScopedCurrentPath(const std::filesystem::path &path) : original_(std::filesystem::current_path())
+    {
+        std::filesystem::current_path(path);
+    }
+
+    ~ScopedCurrentPath()
+    {
+        std::error_code ignored;
+        std::filesystem::current_path(original_, ignored);
+    }
+
+  private:
+    std::filesystem::path original_;
+};
+
+[[nodiscard]] std::filesystem::path make_test_directory(std::string_view name)
+{
+    const auto path = std::filesystem::temp_directory_path() / fmt::format("yaaf-{}-{}", name, std::rand());
+    std::filesystem::remove_all(path);
+    std::filesystem::create_directories(path);
+    return path;
+}
+
+void write_file(const std::filesystem::path &path, std::string_view contents)
+{
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream file{path};
+    file << contents;
+}
+
 nlohmann::json parse_json_output(const std::ostringstream &output)
 {
     return nlohmann::json::parse(output.str());
@@ -205,5 +285,59 @@ TEST(CliEmbedCommandTests, OpenAiProviderUsesEmbeddingsEndpoint)
     const auto response_payload = parse_json_output(output);
     EXPECT_EQ(response_payload.at("model"), "text-embedding-3-small");
     EXPECT_EQ(response_payload.at("prompt_eval_count"), 4);
+}
+
+TEST(CliEmbedCommandTests, OpenAiProviderLoadsEmbeddingModelFromDotenv)
+{
+    const ScopedEnvironmentVariable ollama_endpoint{"YAAF_OLLAMA_ENDPOINT", ""};
+    const ScopedEnvironmentVariable openai_endpoint{"YAAF_OPENAI_ENDPOINT", ""};
+    const ScopedEnvironmentVariable openai_model{"YAAF_OPENAI_MODEL", ""};
+    const ScopedEnvironmentVariable openai_embed_model{"YAAF_OPENAI_EMBED_MODEL", ""};
+
+    const auto test_directory = make_test_directory("cli-openai-embed-dotenv");
+    write_file(test_directory / ".env",
+               "YAAF_OPENAI_ENDPOINT=http://openai.test/v1\n"
+               "YAAF_OPENAI_MODEL=gpt-4o-mini\n"
+               "YAAF_OPENAI_EMBED_MODEL=text-embedding-3-small\n");
+    const ScopedCurrentPath current_path{test_directory};
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/embeddings");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(on_response_chunk, nullptr);
+        EXPECT_EQ(headers.size(), 1U);
+
+        const auto request_payload = nlohmann::json::parse(body, nullptr, false);
+        EXPECT_FALSE(request_payload.is_discarded());
+        if (request_payload.is_discarded())
+        {
+            return HttpClient::Response{};
+        }
+        EXPECT_EQ(request_payload.at("model"), "text-embedding-3-small");
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"model", "text-embedding-3-small"},
+                                       {"data", {{{"index", 0}, {"embedding", {0.1, 0.2, 0.3}}}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"embed", "--provider", "openai", "hello world"}, input, output, error_output,
+                       &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+
+    const auto response_payload = parse_json_output(output);
+    EXPECT_EQ(response_payload.at("model"), "text-embedding-3-small");
 }
 

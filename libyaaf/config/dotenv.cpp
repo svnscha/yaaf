@@ -106,13 +106,14 @@ namespace yaaf::dotenv
     {
         auto current = std::filesystem::current_path();
         const auto env_name = std::filesystem::path(file_name);
+        std::vector<std::filesystem::path> candidates;
 
         while (true)
         {
             const auto candidate = current / env_name;
             if (std::filesystem::exists(candidate))
             {
-                return load(candidate.string());
+                candidates.push_back(candidate);
             }
 
             if (!current.has_parent_path() || current == current.parent_path())
@@ -123,7 +124,17 @@ namespace yaaf::dotenv
             current = current.parent_path();
         }
 
-        return {};
+        EnvironmentFile result;
+        for (auto it = candidates.rbegin(); it != candidates.rend(); ++it)
+        {
+            const auto loaded = load(it->string());
+            for (const auto &entry : loaded.entries_)
+            {
+                parse_line(fmt::format("{}={}", entry.first, entry.second), result.entries_);
+            }
+        }
+
+        return result;
     }
 
     bool EnvironmentFile::contains(std::string_view key) const

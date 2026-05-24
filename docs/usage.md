@@ -80,11 +80,13 @@ At startup the CLI reads these values from the process environment first, then f
 YAAF_OLLAMA_ENDPOINT=http://localhost:11434
 YAAF_OPENAI_ENDPOINT=https://api.openai.com/v1
 YAAF_OPENAI_API_KEY=sk-example
+YAAF_OPENAI_MODEL=gpt-4o-mini
+YAAF_OPENAI_EMBED_MODEL=text-embedding-3-small
 YAAF_PROXY=http://127.0.0.1:18080
 YAAF_MCP_FILE=./configs/tools.mcp.json
 ```
 
-`YAAF_OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. The built-in `openai` provider reads `YAAF_OPENAI_ENDPOINT` and `YAAF_OPENAI_API_KEY` from the process environment when explicit request fields are omitted. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence, and when neither is set yaaf auto-discovers `.yaaf/mcp.json` in the current working directory. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
+`YAAF_OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. The built-in `openai` provider reads `YAAF_OPENAI_ENDPOINT`, `YAAF_OPENAI_API_KEY`, and `YAAF_OPENAI_MODEL` from the process environment when explicit request fields are omitted. `embed --provider openai` also checks `YAAF_OPENAI_EMBED_MODEL` before falling back to `YAAF_OPENAI_MODEL`. The CLI loads `.env` files from the current directory upward and merges them, with nearer files overriding specific keys from farther ancestors. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence, and when neither is set yaaf auto-discovers `.yaaf/mcp.json` in the current working directory. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
 
 Current defaults:
 
@@ -109,7 +111,8 @@ OpenAI-compatible example:
 
 ```powershell
 $env:YAAF_OPENAI_API_KEY = "sk-example"
-yaaf ask --provider openai --model gpt-4o-mini "Explain RAII in one sentence."
+$env:YAAF_OPENAI_MODEL = "gpt-4o-mini"
+yaaf ask --provider openai "Explain RAII in one sentence."
 ```
 
 Options:
@@ -172,7 +175,8 @@ Options:
 `embed` generates embeddings for one or more input texts.
 
 ```powershell
-yaaf embed --model nomic-embed-text:v1.5 "hello world"
+$env:YAAF_OPENAI_EMBED_MODEL = "text-embedding-3-small"
+yaaf embed --provider openai "hello world"
 ```
 
 Options:

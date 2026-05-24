@@ -28,7 +28,18 @@ local function default_openai_api_key(request)
     return os.getenv("YAAF_OPENAI_API_KEY") or ""
 end
 
-local function with_defaults(request)
+local function first_configured_env(names)
+    for _, name in ipairs(names or {}) do
+        local value = os.getenv(name) or ""
+        if value ~= "" then
+            return value
+        end
+    end
+
+    return ""
+end
+
+local function with_defaults(request, fallback_model_env_names, missing_model_message)
     local payload = {}
     for key, value in pairs(request or {}) do
         if key ~= "provider" and key ~= "on_stream" then
@@ -37,7 +48,11 @@ local function with_defaults(request)
     end
 
     if payload.model == nil or payload.model == "" then
-        payload.model = yaaf.defaults.model
+        payload.model = first_configured_env(fallback_model_env_names)
+    end
+
+    if payload.model == nil or payload.model == "" then
+        error(missing_model_message)
     end
 
     payload.endpoint = trim_trailing_slashes(default_openai_endpoint(payload.endpoint))
@@ -461,7 +476,11 @@ local function chat_request_body(payload)
 end
 
 local function run_chat_completion(request)
-    local payload = with_defaults(request)
+    local payload = with_defaults(
+        request,
+        { "YAAF_OPENAI_MODEL" },
+        "openai model is required; pass --model or set YAAF_OPENAI_MODEL"
+    )
     local body = chat_request_body(payload)
     local headers = build_headers(payload)
 
@@ -560,7 +579,11 @@ function M.chat(request)
 end
 
 function M.embed(request)
-    local payload = with_defaults(request)
+    local payload = with_defaults(
+        request,
+        { "YAAF_OPENAI_EMBED_MODEL", "YAAF_OPENAI_MODEL" },
+        "openai embedding model is required; pass --model or set YAAF_OPENAI_EMBED_MODEL"
+    )
     local body = {
         model = payload.model,
         input = payload.input,

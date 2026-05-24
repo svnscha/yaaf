@@ -96,11 +96,13 @@ The built-in `openai` provider targets the OpenAI-compatible Chat Completions an
 - `request.tools` maps to Chat Completions function tools, and tool-call responses are normalized back into yaaf `message.tool_calls`.
 - `request.think = "low" | "medium" | "high"` is translated to `reasoning_effort` when the request has not already set that field through `request.options.extra`.
 - Unsupported or provider-specific fields can be passed through `request.options.extra` for compatible servers.
-- The provider reads `YAAF_OPENAI_ENDPOINT` and `YAAF_OPENAI_API_KEY` from the process environment when explicit request fields are omitted.
+- The provider reads `YAAF_OPENAI_ENDPOINT`, `YAAF_OPENAI_API_KEY`, and `YAAF_OPENAI_MODEL` from the process environment when explicit request fields are omitted.
+- `llm.embed(...)` also checks `YAAF_OPENAI_EMBED_MODEL` before falling back to `YAAF_OPENAI_MODEL`.
 
 ## Notes
 
-- `request.endpoint` and `request.model` default to the runtime defaults when omitted.
+- `request.endpoint` defaults to the provider-specific configured endpoint when omitted.
+- `request.model` must be provided explicitly or through the provider-specific OpenAI environment variables when using the built-in `openai` provider.
 - `request.provider` is required for direct `llm.generate`, `llm.chat`, and `llm.embed` calls.
 - `request.on_stream` may be provided for `generate` and `chat` streaming calls.
 - The built-in `ollama` provider uses the Ollama HTTP API through the native `http` bridge.
