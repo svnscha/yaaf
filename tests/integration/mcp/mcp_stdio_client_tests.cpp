@@ -1,10 +1,10 @@
-#include "../support/mcp_test_support.h"
+#include "../../support/mcp_test_support.h"
 
-#include "../../libyaaf/cli/cli.h"
+#include "../../../libyaaf/cli/cli.h"
 
 using namespace yaaf::tests::mcp;
 
-TEST(McpClientIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
+TEST(McpStdioClientIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_stdio_test");
     write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
@@ -17,7 +17,7 @@ TEST(McpClientIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpClientIntegrationTests, NativeClientPassesEnvFileAndEnvOverridesToScriptedStdioServer)
+TEST(McpStdioClientIntegrationTests, NativeClientPassesEnvFileAndEnvOverridesToScriptedStdioServer)
 {
     const auto workspace = make_workspace("assistant_mcp_stdio_env_test");
     const auto env_file = workspace / "stdio.env";
@@ -46,7 +46,7 @@ TEST(McpClientIntegrationTests, NativeClientPassesEnvFileAndEnvOverridesToScript
     EXPECT_EQ(result.content, "from-file|from-env");
 }
 
-TEST(McpClientIntegrationTests, NativeClientMapsScriptedStdioToolFailures)
+TEST(McpStdioClientIntegrationTests, NativeClientMapsScriptedStdioToolFailures)
 {
     const auto workspace = make_workspace("assistant_mcp_stdio_error_test");
     write_mcp_config(workspace,
@@ -69,7 +69,7 @@ TEST(McpClientIntegrationTests, NativeClientMapsScriptedStdioToolFailures)
     EXPECT_EQ(result.content, "denied");
 }
 
-TEST(McpClientIntegrationTests, LuaMcpModuleUsesExplicitMcpConfigPath)
+TEST(McpStdioClientIntegrationTests, LuaMcpModuleUsesExplicitMcpConfigPath)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_lua_direct_module_test");
@@ -97,7 +97,7 @@ print(result.content)
     EXPECT_EQ(output.str(), "Lua Lua\n");
 }
 
-TEST(McpClientIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
+TEST(McpStdioClientIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_lua_script_config_test");

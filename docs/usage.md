@@ -348,13 +348,15 @@ yaaf --pretty embed --model nomic-embed-text:v1.5 "hello world"
 
 ## Proxy Testing
 
-Start the local Docker test stack with Docker Compose:
+Start the optional local fixture stack with Docker Compose when you want to inspect proxy traffic manually or smoke-test the HTTP and MCP transport paths outside the default native test suite:
 
 ```powershell
-docker compose -f docker-compose.test-stack.yml up
+docker compose -f docker-compose.fixture-stack.yml up
 ```
 
 The proxy listens on `http://127.0.0.1:18080`, the mitmweb UI is available at `http://127.0.0.1:18081`, the local `httpbin` fixture listens on `http://127.0.0.1:18082`, and the same stack starts the hello-world MCP HTTP and SSE fixtures on `http://127.0.0.1:39231/mcp` and `http://127.0.0.1:39232/mcp`.
+
+This stack is for manual debugging, proxy inspection, and explicit smoke checks. The default `libyaaf_tests` flow is intended to stay runnable without Docker or other prestarted services.
 
 Smoke-test the CLI proxy path with a plain HTTP request:
 

@@ -1,10 +1,10 @@
-#include "../support/mcp_test_support.h"
+#include "../../support/mcp_test_support.h"
 
-#include "../../libyaaf/cli/cli.h"
+#include "../../../libyaaf/cli/cli.h"
 
 using namespace yaaf::tests::mcp;
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
+TEST(McpStdioRuntimeIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_stdio_test");
     write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
@@ -17,7 +17,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpFixtureIntegrationTests, AskCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
+TEST(McpStdioRuntimeIntegrationTests, AskCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_ask_stdio_test");
@@ -80,7 +80,7 @@ TEST(McpFixtureIntegrationTests, AskCommandUsesScriptedStdioMcpToolFromWorkspace
                             "assistant: The MCP server said hello.\n");
 }
 
-TEST(McpFixtureIntegrationTests, ChatCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
+TEST(McpStdioRuntimeIntegrationTests, ChatCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_chat_stdio_test");
@@ -140,7 +140,7 @@ TEST(McpFixtureIntegrationTests, ChatCommandUsesScriptedStdioMcpToolFromWorkspac
                             "user: ");
 }
 
-TEST(McpFixtureIntegrationTests, AgentCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
+TEST(McpStdioRuntimeIntegrationTests, AgentCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_agent_stdio_test");
@@ -204,7 +204,7 @@ TEST(McpFixtureIntegrationTests, AgentCommandUsesScriptedStdioMcpToolFromWorkspa
                             "assistant: hi hi hi\n");
 }
 
-TEST(McpFixtureIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
+TEST(McpStdioRuntimeIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_lua_script_config_test");
@@ -232,7 +232,7 @@ print(result.content)
     EXPECT_EQ(output.str(), "Hello, Lua!\n");
 }
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
+TEST(McpStdioRuntimeIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_http_test");
     write_mcp_config(workspace,
@@ -246,7 +246,7 @@ TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedSseServer)
+TEST(McpStdioRuntimeIntegrationTests, NativeClientListsAndCallsScriptedSseServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_sse_test");
     write_mcp_config(workspace,

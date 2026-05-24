@@ -47,7 +47,7 @@ struct RecordedMcpPost
 }
 } // namespace
 
-TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
+TEST(McpHttpProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
 {
     const auto workspace = make_workspace("assistant_mcp_provider_http_test");
     write_mcp_config(workspace,
@@ -65,7 +65,7 @@ TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpSer
     EXPECT_EQ(requests.front().json_body.at("method"), "initialize");
 }
 
-TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpServerWithConfiguredProxy)
+TEST(McpHttpProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpServerWithConfiguredProxy)
 {
     const auto workspace = make_workspace("assistant_mcp_provider_http_proxy_test");
     write_mcp_config(workspace,
@@ -85,7 +85,7 @@ TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedHttpSer
     EXPECT_EQ(requests.back().json_body.at("method"), "tools/call");
 }
 
-TEST(McpClientProviderIntegrationTests, AskCommandUsesScriptedOllamaProviderWithHttpMcpTools)
+TEST(McpHttpProviderIntegrationTests, AskCommandUsesScriptedOllamaProviderWithHttpMcpTools)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_provider_ollama_ask_test");
@@ -119,7 +119,7 @@ TEST(McpClientProviderIntegrationTests, AskCommandUsesScriptedOllamaProviderWith
     EXPECT_EQ(mcp_requests.back().json_body.at("method"), "tools/call");
 }
 
-TEST(McpClientProviderIntegrationTests, ChatCommandUsesScriptedOllamaProviderWithHttpMcpTools)
+TEST(McpHttpProviderIntegrationTests, ChatCommandUsesScriptedOllamaProviderWithHttpMcpTools)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_provider_ollama_chat_test");
@@ -152,7 +152,7 @@ TEST(McpClientProviderIntegrationTests, ChatCommandUsesScriptedOllamaProviderWit
     EXPECT_EQ(mcp_requests.back().json_body.at("method"), "tools/call");
 }
 
-TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedSseServer)
+TEST(McpHttpProviderIntegrationTests, NativeClientListsAndCallsScriptedSseServer)
 {
     const auto workspace = make_workspace("assistant_mcp_provider_sse_test");
     write_mcp_config(workspace,
@@ -170,7 +170,7 @@ TEST(McpClientProviderIntegrationTests, NativeClientListsAndCallsScriptedSseServ
     EXPECT_EQ(requests.front().json_body.at("method"), "initialize");
 }
 
-TEST(McpClientProviderIntegrationTests, AskCommandUsesScriptedOpenAiCompatibleProviderWithHttpMcpTools)
+TEST(McpHttpProviderIntegrationTests, AskCommandUsesScriptedOpenAiCompatibleProviderWithHttpMcpTools)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_provider_openai_ask_test");
@@ -204,7 +204,7 @@ TEST(McpClientProviderIntegrationTests, AskCommandUsesScriptedOpenAiCompatiblePr
     EXPECT_EQ(mcp_requests.back().json_body.at("method"), "tools/call");
 }
 
-TEST(McpClientProviderIntegrationTests, ChatCommandUsesScriptedOpenAiCompatibleProviderWithHttpMcpTools)
+TEST(McpHttpProviderIntegrationTests, ChatCommandUsesScriptedOpenAiCompatibleProviderWithHttpMcpTools)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_provider_openai_chat_test");

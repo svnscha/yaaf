@@ -13,11 +13,11 @@ constexpr std::string_view kOpenAiEndpoint = "http://openai.test/v1";
 constexpr std::string_view kTestModel = "qwen3:0.6b";
 constexpr std::string_view kEmbedModel = "nomic-embed-text:v1.5";
 
-class LuaOllamaProviderTests : public ::testing::Test
+class OllamaProviderContractIntegrationTests : public ::testing::Test
 {
 };
 
-class LuaOpenAiCompatibleProviderTests : public ::testing::Test
+class OpenAiCompatibleProviderContractIntegrationTests : public ::testing::Test
 {
 };
 
@@ -90,7 +90,7 @@ struct TemporaryScript
 }
 } // namespace
 
-TEST_F(LuaOllamaProviderTests, GenerateReturnsCompletedResponse)
+TEST_F(OllamaProviderContractIntegrationTests, GenerateReturnsCompletedResponse)
 {
     const TemporaryScript script{"assistant_lua_ollama_generate_test.lua", R"(
 local json = require("json")
@@ -124,7 +124,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOllamaEndpoint) + "/api/generate");
 }
 
-TEST_F(LuaOllamaProviderTests, GenerateStreamingCallbackPublishesLiveEvents)
+TEST_F(OllamaProviderContractIntegrationTests, GenerateStreamingCallbackPublishesLiveEvents)
 {
     const TemporaryScript script{"assistant_lua_ollama_generate_stream_test.lua", R"(
 local json = require("json")
@@ -164,7 +164,7 @@ print(json.encode({
     EXPECT_TRUE(fixture.requests().front().streamed);
 }
 
-TEST_F(LuaOllamaProviderTests, ChatReturnsCompletedResponse)
+TEST_F(OllamaProviderContractIntegrationTests, ChatReturnsCompletedResponse)
 {
     const TemporaryScript script{"assistant_lua_ollama_chat_test.lua", R"(
 local json = require("json")
@@ -200,7 +200,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOllamaEndpoint) + "/api/chat");
 }
 
-TEST_F(LuaOllamaProviderTests, ChatStreamingCallbackPublishesLiveEvents)
+TEST_F(OllamaProviderContractIntegrationTests, ChatStreamingCallbackPublishesLiveEvents)
 {
     const TemporaryScript script{"assistant_lua_ollama_chat_stream_test.lua", R"(
 local json = require("json")
@@ -245,7 +245,7 @@ print(json.encode({
     EXPECT_TRUE(fixture.requests().front().streamed);
 }
 
-TEST_F(LuaOllamaProviderTests, EmbedReturnsSingleEmbedding)
+TEST_F(OllamaProviderContractIntegrationTests, EmbedReturnsSingleEmbedding)
 {
     const TemporaryScript script{"assistant_lua_ollama_embed_single_test.lua", R"(
 local json = require("json")
@@ -275,7 +275,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOllamaEndpoint) + "/api/embed");
 }
 
-TEST_F(LuaOllamaProviderTests, EmbedReturnsBatchEmbeddings)
+TEST_F(OllamaProviderContractIntegrationTests, EmbedReturnsBatchEmbeddings)
 {
     const TemporaryScript script{"assistant_lua_ollama_embed_batch_test.lua", R"(
 local json = require("json")
@@ -307,7 +307,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOllamaEndpoint) + "/api/embed");
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, GenerateReturnsCompletedResponse)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, GenerateReturnsCompletedResponse)
 {
     const TemporaryScript script{"assistant_lua_openai_generate_test.lua", R"(
 local json = require("json")
@@ -341,7 +341,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOpenAiEndpoint) + "/chat/completions");
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, GenerateStreamingCallbackPublishesLiveEvents)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, GenerateStreamingCallbackPublishesLiveEvents)
 {
     const TemporaryScript script{"assistant_lua_openai_generate_stream_test.lua", R"(
 local json = require("json")
@@ -383,7 +383,7 @@ print(json.encode({
     EXPECT_TRUE(fixture.requests().front().streamed);
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, ChatReturnsCompletedResponse)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, ChatReturnsCompletedResponse)
 {
     const TemporaryScript script{"assistant_lua_openai_chat_test.lua", R"(
 local json = require("json")
@@ -421,7 +421,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOpenAiEndpoint) + "/chat/completions");
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, ChatStreamingCallbackPublishesLiveEvents)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, ChatStreamingCallbackPublishesLiveEvents)
 {
     const TemporaryScript script{"assistant_lua_openai_chat_stream_test.lua", R"(
 local json = require("json")
@@ -468,7 +468,7 @@ print(json.encode({
     EXPECT_TRUE(fixture.requests().front().streamed);
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, EmbedReturnsSingleEmbedding)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, EmbedReturnsSingleEmbedding)
 {
     const TemporaryScript script{"assistant_lua_openai_embed_single_test.lua", R"(
 local json = require("json")
@@ -500,7 +500,7 @@ print(json.encode({
     EXPECT_EQ(fixture.requests().front().url, std::string(kOpenAiEndpoint) + "/embeddings");
 }
 
-TEST_F(LuaOpenAiCompatibleProviderTests, EmbedReturnsBatchEmbeddings)
+TEST_F(OpenAiCompatibleProviderContractIntegrationTests, EmbedReturnsBatchEmbeddings)
 {
     const TemporaryScript script{"assistant_lua_openai_embed_batch_test.lua", R"(
 local json = require("json")

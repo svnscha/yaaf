@@ -1,10 +1,10 @@
-#include "../../libyaaf/pch/pch_dependencies.h"
-#include "../../libyaaf/pch/pch_std.h"
+#include "../../../libyaaf/pch/pch_dependencies.h"
+#include "../../../libyaaf/pch/pch_std.h"
 
 #include <gtest/gtest.h>
 
-#include "../../libyaaf/http/http_client.h"
-#include "../support/http_test_server.h"
+#include "../../../libyaaf/http/http_client.h"
+#include "../../support/http_test_server.h"
 
 namespace
 {
@@ -88,7 +88,7 @@ namespace
 }
 } // namespace
 
-TEST(HttpClientTests, GetReturnsHttpBinPayload)
+TEST(HttpClientIntegrationTests, GetReturnsHttpBinPayload)
 {
     std::string request_url;
     yaaf::tests::http::LocalHttpServer server{[&](const yaaf::tests::http::Request &request) {
@@ -115,7 +115,7 @@ TEST(HttpClientTests, GetReturnsHttpBinPayload)
     EXPECT_EQ(payload["url"], request_url);
 }
 
-TEST(HttpClientTests, ProxyOptionIsAppliedToRequests)
+TEST(HttpClientIntegrationTests, ProxyOptionIsAppliedToRequests)
 {
     HttpClient::Options options;
     options.proxy = "http://127.0.0.1:1";
@@ -124,7 +124,7 @@ TEST(HttpClientTests, ProxyOptionIsAppliedToRequests)
     EXPECT_THROW(static_cast<void>(client.get("http://example.com")), std::runtime_error);
 }
 
-TEST(HttpClientTests, PostReturnsSubmittedJson)
+TEST(HttpClientIntegrationTests, PostReturnsSubmittedJson)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "POST");
@@ -160,7 +160,7 @@ TEST(HttpClientTests, PostReturnsSubmittedJson)
     EXPECT_EQ(*content_type, "application/json");
 }
 
-TEST(HttpClientTests, ExecuteSupportsPatchHeadersAndBody)
+TEST(HttpClientIntegrationTests, ExecuteSupportsPatchHeadersAndBody)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "PATCH");
@@ -204,7 +204,7 @@ TEST(HttpClientTests, ExecuteSupportsPatchHeadersAndBody)
     EXPECT_EQ(*forwarded_header, "patch");
 }
 
-TEST(HttpClientTests, ExecuteSupportsHeadResponses)
+TEST(HttpClientIntegrationTests, ExecuteSupportsHeadResponses)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "HEAD");
@@ -231,7 +231,7 @@ TEST(HttpClientTests, ExecuteSupportsHeadResponses)
     EXPECT_EQ(*head_header, "yes");
 }
 
-TEST(HttpClientTests, ExecuteAppliesPerRequestTimeout)
+TEST(HttpClientIntegrationTests, ExecuteAppliesPerRequestTimeout)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "GET");
@@ -254,7 +254,7 @@ TEST(HttpClientTests, ExecuteAppliesPerRequestTimeout)
     EXPECT_THROW(static_cast<void>(client.execute(request)), std::runtime_error);
 }
 
-TEST(HttpClientTests, MoveConstructionPreservesUsability)
+TEST(HttpClientIntegrationTests, MoveConstructionPreservesUsability)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "GET");
@@ -278,7 +278,7 @@ TEST(HttpClientTests, MoveConstructionPreservesUsability)
     EXPECT_EQ(*arg_value, "move-ctor");
 }
 
-TEST(HttpClientTests, MoveAssignmentPreservesUsability)
+TEST(HttpClientIntegrationTests, MoveAssignmentPreservesUsability)
 {
     yaaf::tests::http::LocalHttpServer server{[](const yaaf::tests::http::Request &request) {
         EXPECT_EQ(request.method, "GET");
