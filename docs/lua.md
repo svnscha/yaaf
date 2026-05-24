@@ -52,7 +52,7 @@ See [Lua API Reference](modules/index.md) for the full runtime module surface. I
 
 `require("json")` exposes native JSON encode/decode helpers.
 
-`require("http")` exposes the native low-level HTTP bridge for direct requests and future Lua-side provider implementations.
+`require("http")` exposes the native low-level, request-based HTTP bridge for direct requests and future Lua-side provider implementations.
 
 `require("llm")` exposes the provider-neutral LLM registry used by the built-in commands. It ships with built-in `ollama` and `echo` providers and lets Lua scripts register custom provider callback tables. The built-in `echo` provider is deterministic and intended for smoke tests and script-level wiring checks.
 

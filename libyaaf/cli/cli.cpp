@@ -87,27 +87,52 @@ void write_json(std::ostream &output, const nlohmann::json &payload, const bool 
     output << (pretty ? payload.dump(2) : payload.dump()) << '\n';
 }
 
-HttpClient::Response run_get(std::string_view url, const GlobalOptions &global_options, const Services *services)
+HttpClient::Response run_request(const HttpClient::Request &request, const GlobalOptions &global_options,
+                                 const Services *services)
 {
-    if (services != nullptr && services->http_get)
+    if (services != nullptr)
     {
-        return services->http_get(url, {});
+        if (services->http_request)
+        {
+            return services->http_request(request);
+        }
+
+        if (request.method == "GET" && services->http_get && !request.body.has_value() && !request.content_type.has_value() &&
+            !request.timeout.has_value() && !request.on_response_chunk)
+        {
+            return services->http_get(request.url, request.headers);
+        }
+
+        if (request.method == "POST" && services->http_post && !request.timeout.has_value())
+        {
+            const auto *on_response_chunk = request.on_response_chunk ? &request.on_response_chunk : nullptr;
+            return services->http_post(request.url, request.body.value_or(""),
+                                       request.content_type.value_or("application/json"), request.headers,
+                                       on_response_chunk);
+        }
     }
 
     HttpClient client{global_options.http};
-    return client.get(url);
+    return client.execute(request);
+}
+
+HttpClient::Response run_get(std::string_view url, const GlobalOptions &global_options, const Services *services)
+{
+    HttpClient::Request request;
+    request.method = "GET";
+    request.url = std::string(url);
+    return run_request(request, global_options, services);
 }
 
 HttpClient::Response run_post(std::string_view url, std::string_view body, std::string_view content_type,
                               const GlobalOptions &global_options, const Services *services)
 {
-    if (services != nullptr && services->http_post)
-    {
-        return services->http_post(url, body, content_type, {}, nullptr);
-    }
-
-    HttpClient client{global_options.http};
-    return client.post(url, body, content_type);
+    HttpClient::Request request;
+    request.method = "POST";
+    request.url = std::string(url);
+    request.body = std::string(body);
+    request.content_type = std::string(content_type);
+    return run_request(request, global_options, services);
 }
 
 [[nodiscard]] std::string metadata_string(const nlohmann::json &metadata, std::string_view key,
@@ -482,6 +507,11 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
     if (services->embed)
     {
         script_services.embed = [&](const yaaf::llm::EmbedRequest &request) { return services->embed(request); };
+    }
+
+    if (services->http_request)
+    {
+        script_services.http_request = [&](const HttpClient::Request &request) { return services->http_request(request); };
     }
 
     if (services->http_get)

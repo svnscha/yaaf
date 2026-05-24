@@ -10,7 +10,7 @@ For built-in tool names, schemas, and a custom tool authoring guide, see [Tool R
 
 - [yaaf](yaaf.md): process, command metadata, stdin/stdout, and runtime defaults.
 - [json](json.md): JSON encode/decode helpers.
-- [http](http.md): low-level HTTP transport bridge.
+- [http](http.md): low-level request-based HTTP transport bridge.
 - [llm](llm.md): provider-neutral generate, chat, and embed bridge.
 - [mcp](mcp.md): MCP config reports, server discovery, tool listing, and tool calls.
 - [agent](agent.md): agent registry and agent-authoring primitives.

@@ -169,12 +169,15 @@ TEST(CliTests, RootHelpOmitsOllamaSubcommandOptions)
     EXPECT_EQ(output.str().find("--format"), std::string::npos);
 }
 
-TEST(CliTests, GlobalProxyOptionCanBeUsedWithHttpGet)
+TEST(CliTests, GlobalProxyOptionCanBeUsedWithGenericHttpRequestOverride)
 {
     yaaf::cli::Services services;
-    services.http_get = [](std::string_view url, const HttpClient::Headers &headers) {
-        EXPECT_EQ(url, "http://example.test");
-        EXPECT_TRUE(headers.empty());
+    services.http_request = [](const HttpClient::Request &request) {
+        EXPECT_EQ(request.method, "GET");
+        EXPECT_EQ(request.url, "http://example.test");
+        EXPECT_TRUE(request.headers.empty());
+        EXPECT_FALSE(request.body.has_value());
+        EXPECT_FALSE(request.timeout.has_value());
         return HttpClient::Response{200, "text/plain", "ok"};
     };
 
