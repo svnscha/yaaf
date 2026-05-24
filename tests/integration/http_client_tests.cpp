@@ -56,7 +56,7 @@ namespace
     return std::nullopt;
 }
 
-void skip_if_httpbin_fixture_unavailable(std::string_view base_url)
+[[nodiscard]] bool httpbin_fixture_available(std::string_view base_url)
 {
     try
     {
@@ -64,21 +64,24 @@ void skip_if_httpbin_fixture_unavailable(std::string_view base_url)
         const auto response = HttpClient{yaaf::tests::runtime_http_options_for_url(status_url)}.get(status_url);
         if (response.status_code == 200)
         {
-            return;
+            return true;
         }
     }
     catch (const std::exception &)
     {
     }
-
-    GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+    return false;
 }
 } // namespace
 
 TEST(HttpClientTests, GetReturnsHttpBinPayload)
 {
     const auto base_url = yaaf::tests::runtime_httpbin_base_url();
-    skip_if_httpbin_fixture_unavailable(base_url);
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
     const auto request_url = yaaf::tests::join_fixture_url(base_url, "/get?yaaf=copilot");
     HttpClient client{yaaf::tests::runtime_http_options_for_url(request_url)};
 
@@ -110,7 +113,11 @@ TEST(HttpClientTests, ProxyOptionIsAppliedToRequests)
 TEST(HttpClientTests, PostReturnsSubmittedJson)
 {
     const auto base_url = yaaf::tests::runtime_httpbin_base_url();
-    skip_if_httpbin_fixture_unavailable(base_url);
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
     const auto request_url = yaaf::tests::join_fixture_url(base_url, "/post");
     HttpClient client{yaaf::tests::runtime_http_options_for_url(request_url)};
     const auto request_body = R"({"message":"hello","count":2})";
@@ -138,7 +145,11 @@ TEST(HttpClientTests, PostReturnsSubmittedJson)
 TEST(HttpClientTests, MoveConstructionPreservesUsability)
 {
     const auto base_url = yaaf::tests::runtime_httpbin_base_url();
-    skip_if_httpbin_fixture_unavailable(base_url);
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
     const auto request_url = yaaf::tests::join_fixture_url(base_url, "/get?yaaf=move-ctor");
     HttpClient original{yaaf::tests::runtime_http_options_for_url(request_url)};
     HttpClient moved(std::move(original));
@@ -159,7 +170,11 @@ TEST(HttpClientTests, MoveConstructionPreservesUsability)
 TEST(HttpClientTests, MoveAssignmentPreservesUsability)
 {
     const auto base_url = yaaf::tests::runtime_httpbin_base_url();
-    skip_if_httpbin_fixture_unavailable(base_url);
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
     const auto request_url = yaaf::tests::join_fixture_url(base_url, "/get?yaaf=move-assign");
     HttpClient source{yaaf::tests::runtime_http_options_for_url(request_url)};
     HttpClient destination{yaaf::tests::runtime_http_options_for_url(request_url)};
