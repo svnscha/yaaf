@@ -1,5 +1,7 @@
 #include "lua_runtime.h"
 
+#include "../platform/executable_path.h"
+
 extern "C"
 {
 #include <lauxlib.h>
@@ -199,7 +201,20 @@ int run_file_impl(const LuaRuntimeOptions &options, const Services *services, nl
         print_context.output = options.output;
         register_print(state, print_context);
 
-        prepend_package_path(state, previous_path / "lua");
+        // Package path precedence (highest priority listed last because
+        // prepend_package_path puts each entry at the front of package.path):
+        //   1. The directory containing the invoked script (highest).
+        //   2. The script's grandparent directory, so module-style layouts work.
+        //   3. The bundled runtime `lua/` directory next to the yaaf executable
+        //      (or an explicit `options.runtime_root` override) — this is what
+        //      makes `require("yaaf")` etc. work regardless of the caller's
+        //      current working directory.
+        const auto runtime_root =
+            options.runtime_root.empty() ? yaaf::platform::executable_directory() : options.runtime_root;
+        if (!runtime_root.empty())
+        {
+            prepend_package_path(state, runtime_root / "lua");
+        }
         prepend_package_path(state, absolute_path.parent_path().parent_path());
         prepend_package_path(state, absolute_path.parent_path());
 

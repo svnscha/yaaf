@@ -64,7 +64,7 @@ build/app/Debug/yaaf
 
 On Linux, the normal contributor executable path is `build/app/yaaf`. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution. The current CI runtime smoke checks pass on Ubuntu 24.04 and record the expected Ubuntu 22.04 failure caused by newer glibc/libstdc++ requirements in the packaged binary.
 
-The build also copies `lua/` and `examples/` next to the executable, so the app can discover its Lua command modules and run included examples from the executable directory.
+The build also copies `lua/` and `examples/` next to the executable, so the app can discover its Lua command modules and run included examples from the executable directory. The native runtime resolves bundled Lua modules (such as `require("yaaf")`, `require("llm")`, and the `lua/cli/*` command modules) from this executable-adjacent `lua/` tree, so `yaaf` behaves the same regardless of the caller's current working directory. Script-local `require(...)` lookups next to the invoked `.lua` file still take precedence over the bundled tree.
 
 Show help:
 

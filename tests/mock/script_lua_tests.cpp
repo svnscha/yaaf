@@ -644,3 +644,91 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredHttpModule)
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "200\njson\n201\nchunk-stream\nok\n");
 }
+
+
+namespace
+{
+class ScopedCurrentPath
+{
+  public:
+    explicit ScopedCurrentPath(const std::filesystem::path &target) : previous_(std::filesystem::current_path())
+    {
+        std::filesystem::current_path(target);
+    }
+
+    ~ScopedCurrentPath()
+    {
+        std::error_code ignored;
+        std::filesystem::current_path(previous_, ignored);
+    }
+
+    ScopedCurrentPath(const ScopedCurrentPath &) = delete;
+    ScopedCurrentPath &operator=(const ScopedCurrentPath &) = delete;
+
+  private:
+    std::filesystem::path previous_;
+};
+} // namespace
+
+TEST(ScriptLuaRuntimePathTests, ResolvesBundledModulesRelativeToExecutableWhenCwdHasNoLuaTree)
+{
+    const auto sandbox = std::filesystem::temp_directory_path() / "yaaf-runtime-relocate-test";
+    std::filesystem::remove_all(sandbox);
+    std::filesystem::create_directories(sandbox);
+
+    const auto script_path = sandbox / "uses_bundled_yaaf.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local yaaf = require('yaaf')\n";
+        script << "assert(type(yaaf.command) == 'function', 'yaaf.command should be available')\n";
+        script << "print('bundled-ok')\n";
+    }
+
+    auto options = lua_runtime_options(script_path);
+    std::ostringstream output;
+    options.output = &output;
+
+    int exit_code = EXIT_FAILURE;
+    {
+        // Running from a directory that contains no `lua/` tree must still resolve `require('yaaf')`
+        // because the runtime looks next to the executable, not next to the caller.
+        const ScopedCurrentPath cwd_guard{sandbox};
+        exit_code = yaaf::script::run_file(options);
+    }
+
+    std::filesystem::remove_all(sandbox);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_EQ(output.str(), "bundled-ok\n");
+}
+
+TEST(ScriptLuaRuntimePathTests, ExplicitRuntimeRootOverridesExecutableDirectory)
+{
+    const auto sandbox = std::filesystem::temp_directory_path() / "yaaf-runtime-root-override-test";
+    std::filesystem::remove_all(sandbox);
+    std::filesystem::create_directories(sandbox / "lua");
+
+    {
+        std::ofstream module_file{sandbox / "lua" / "custom_runtime_module.lua"};
+        module_file << "return { tag = 'override' }\n";
+    }
+
+    const auto script_path = sandbox / "uses_override.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local custom = require('custom_runtime_module')\n";
+        script << "print(custom.tag)\n";
+    }
+
+    auto options = lua_runtime_options(script_path);
+    options.runtime_root = sandbox;
+    std::ostringstream output;
+    options.output = &output;
+
+    const auto exit_code = yaaf::script::run_file(options);
+
+    std::filesystem::remove_all(sandbox);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_EQ(output.str(), "override\n");
+}
