@@ -602,7 +602,7 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
     const auto &servers = payload.at("mcp").at("servers");
     const auto find_server = [&](std::string_view id) -> const nlohmann::json & {
         const auto found = std::find_if(servers.begin(), servers.end(), [&](const auto &server) {
-            return server.at("id").get<std::string>() == id;
+            return server.at("id").template get<std::string>() == id;
         });
         EXPECT_NE(found, servers.end());
         return *found;
