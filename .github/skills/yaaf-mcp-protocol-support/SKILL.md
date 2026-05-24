@@ -49,9 +49,9 @@ cmake --build build --config Debug --target libyaaf_tests
 - Prefer precise support language: `supported`, `accepted`, `reported as diagnostic`, `schema metadata only`, or `not implemented`.
 - Do not imply full MCP specification support when only generated metadata exists.
 - Keep MCP config documented as the unchanged VS Code shape; do not add yaaf-specific keys there.
-- Keep MCP path selection documented as explicit only: `--mcp <path>` or `YAAF_MCP_FILE`. Yaaf must not auto-discover `.vscode/mcp.json`.
+- Keep MCP path selection documented as explicit only: `--mcp <path>` or `YAAF_MCP_FILE`. Yaaf must not auto-discover editor-owned MCP config files outside `.yaaf/mcp.json`.
 - Mention platform limits, especially stdio being Windows-only in the current implementation.
 - Keep examples short and compatible with the current implementation.
 - Do not document `${input:...}` as supported; yaaf rejects it. Use `${env:NAME}` or `envFile` examples instead.
 - Keep fixture servers hello-world specific. Do not copy weather/API examples into this repository's MCP test servers.
-- Keep stdio fixture tests runtime-owned through `.vscode/mcp.json`; keep HTTP/SSE fixture tests prestarted through `docker-compose.mitmproxy.yml` or documented endpoint overrides instead of launching them from C++ tests.
+- Keep stdio fixture tests runtime-owned through `.yaaf/mcp.json`; keep HTTP/SSE fixture tests prestarted through `docker-compose.mitmproxy.yml` or documented endpoint overrides instead of launching them from C++ tests.

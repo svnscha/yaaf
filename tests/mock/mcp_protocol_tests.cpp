@@ -18,7 +18,7 @@ TEST(McpProtocolMockTests, NativeClientPaginatesSseListsAndMapsToolErrors)
     std::vector<yaaf::mcp::Headers> headers_seen;
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.schema_registry = std::make_shared<TestSchemaRegistry>(std::make_shared<TestSchemaBackend>(
         "2030-01-01", std::vector<yaaf::mcp::schema::MethodInfo>{{"tools/list", "ListToolsRequest"},
                                                                  {"tools/call", "CallToolRequest"}}));
@@ -99,7 +99,7 @@ TEST(McpProtocolMockTests, RejectsUnsupportedNegotiatedProtocolVersion)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http_post = [](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
         const auto request = nlohmann::json::parse(body);
         nlohmann::json payload;
@@ -127,7 +127,7 @@ TEST(McpProtocolMockTests, ReportsHttpTransportFailures)
     {
         yaaf::mcp::ClientOptions options;
         options.workspace_root = workspace;
-        options.config_path = workspace / ".vscode" / "mcp.json";
+        options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
             return HttpClient::Response{503, "text/plain", "unavailable"};
@@ -140,7 +140,7 @@ TEST(McpProtocolMockTests, ReportsHttpTransportFailures)
     {
         yaaf::mcp::ClientOptions options;
         options.workspace_root = workspace;
-        options.config_path = workspace / ".vscode" / "mcp.json";
+        options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
             return HttpClient::Response{200, "application/json", ""};
@@ -163,7 +163,7 @@ TEST(McpProtocolMockTests, ReportsSseTransportFailuresAndParsesMultiLinePayloads
     {
         yaaf::mcp::ClientOptions options;
         options.workspace_root = workspace;
-        options.config_path = workspace / ".vscode" / "mcp.json";
+        options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
             return HttpClient::Response{200, "text/event-stream", "event: message\n\n"};
@@ -176,7 +176,7 @@ TEST(McpProtocolMockTests, ReportsSseTransportFailuresAndParsesMultiLinePayloads
     std::vector<nlohmann::json> requests;
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.schema_registry = registry;
     options.http_post = [&](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
         const auto request = nlohmann::json::parse(body);
@@ -221,7 +221,7 @@ TEST(McpProtocolMockTests, MapsProtocolErrorsAndStructuredToolResults)
     std::string result_shape = "object-content";
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.schema_registry = registry;
     options.http_post = [&](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
         const auto request = nlohmann::json::parse(body);
@@ -304,7 +304,7 @@ TEST(McpProtocolMockTests, RejectsMethodsMissingFromNegotiatedSchema)
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.schema_registry = std::make_shared<TestSchemaRegistry>(std::make_shared<TestSchemaBackend>(
         "2025-06-18", std::vector<yaaf::mcp::schema::MethodInfo>{{"tools/list", "ListToolsRequest"}}));
     options.http_post = [](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
@@ -404,7 +404,7 @@ assert(result.metadata.arguments.query == "mcp")
     options.endpoint = "http://localhost:11434";
     options.model = "qwen3:0.6b";
     options.workspace_root = workspace;
-    options.mcp_config_path = workspace / ".vscode" / "mcp.json";
+    options.mcp_config_path = workspace_mcp_config_path(workspace);
 
     EXPECT_EQ(yaaf::script::run_file(options, &services), EXIT_SUCCESS);
 }
@@ -480,7 +480,7 @@ print(result.content)
     options.endpoint = "http://localhost:11434";
     options.model = "qwen3:0.6b";
     options.workspace_root = workspace;
-    options.mcp_config_path = workspace / ".vscode" / "mcp.json";
+    options.mcp_config_path = workspace_mcp_config_path(workspace);
     std::ostringstream output;
     options.output = &output;
 
@@ -503,7 +503,7 @@ mcp.call_tool("docs", "lookup", function() end)
     options.endpoint = "http://localhost:11434";
     options.model = "qwen3:0.6b";
     options.workspace_root = workspace;
-    options.mcp_config_path = workspace / ".vscode" / "mcp.json";
+    options.mcp_config_path = workspace_mcp_config_path(workspace);
 
     EXPECT_THROW((void)yaaf::script::run_file(options), std::runtime_error);
 }
@@ -523,7 +523,7 @@ mcp.call_tool("docs", "lookup", { [0] = "bad" })
     options.endpoint = "http://localhost:11434";
     options.model = "qwen3:0.6b";
     options.workspace_root = workspace;
-    options.mcp_config_path = workspace / ".vscode" / "mcp.json";
+    options.mcp_config_path = workspace_mcp_config_path(workspace);
 
     EXPECT_THROW((void)yaaf::script::run_file(options), std::runtime_error);
 }
@@ -531,7 +531,7 @@ mcp.call_tool("docs", "lookup", { [0] = "bad" })
 TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets)
 {
     const auto workspace = make_workspace("assistant_mcp_doctor_json_test");
-    const auto mcp_path = workspace / ".vscode" / "mcp.json";
+    const auto mcp_path = workspace_mcp_config_path(workspace);
     write_mcp_config(workspace,
                      nlohmann::json{{"servers",
                                      {{"broken",
@@ -633,7 +633,7 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
 TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
 {
     const auto workspace = make_workspace("assistant_mcp_doctor_text_test");
-    const auto mcp_path = workspace / ".vscode" / "mcp.json";
+    const auto mcp_path = workspace_mcp_config_path(workspace);
     write_mcp_config(workspace,
                      nlohmann::json{{"servers",
                                      {{"docs",

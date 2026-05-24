@@ -8,11 +8,7 @@ Yaaf loads MCP tools from a config file. The path is resolved in this order:
 
 When none of these is set and no `.yaaf/mcp.json` exists, yaaf runs without MCP tools.
 
-The file must use the VS Code MCP configuration shape unchanged. Yaaf does not auto-discover `.vscode/mcp.json`, and it does not introduce yaaf-specific MCP config keys. If you want to reuse a workspace `.vscode/mcp.json`, point to it explicitly:
-
-```powershell
-yaaf ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps."
-```
+The file must use the VS Code MCP configuration shape unchanged, but yaaf keeps project-owned MCP config under `.yaaf/mcp.json` for auto-discovery and examples. For explicit non-default paths, pass a normal file path such as `./configs/docs.mcp.json`.
 
 For project-owned defaults, drop a `.yaaf/mcp.json` at the repository root and yaaf will pick it up automatically for both regular commands and `yaaf run <script>` invocations launched from that directory.
 

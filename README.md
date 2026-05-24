@@ -73,7 +73,7 @@ yaaf agent --name react --tool echo "Use the echo tool to repeat hello."
 Point yaaf at an explicit MCP config and call a remote tool:
 
 ```powershell
-yaaf ask --mcp ./.vscode/mcp.json --tool docs.lookup "Look up the install steps."
+yaaf ask --mcp ./configs/docs.mcp.json --tool docs.lookup "Look up the install steps."
 ```
 
 Run a Lua script directly when you want full control over the workflow:

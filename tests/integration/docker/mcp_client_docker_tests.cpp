@@ -96,7 +96,7 @@ TEST(McpClientDockerIntegrationTests, NativeClientListsAndCallsPrestartedHttpSer
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
@@ -130,7 +130,7 @@ TEST(McpClientDockerIntegrationTests, NativeClientCallsPrestartedHttpServerThrou
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http = std::move(http_options);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
@@ -168,7 +168,7 @@ TEST(McpClientDockerIntegrationTests, AskCommandSendsMcpToolsToRealModelThroughC
 
     const auto exit_code = yaaf::cli::run(
         {"--proxy", *http_options.proxy, "ask", "--endpoint", ollama_endpoint, "--model",
-         runtime_ollama_model(dotenv), "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.hello",
+         runtime_ollama_model(dotenv), "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool", "hello.hello",
          "You must call the hello.hello tool with name MCP, then answer with the greeting."},
         input, output, error_output, nullptr);
 
@@ -209,7 +209,7 @@ TEST(McpClientDockerIntegrationTests, ChatCommandSendsMcpToolsToRealModelThrough
 
     const auto exit_code = yaaf::cli::run(
         {"--proxy", *http_options.proxy, "chat", "--endpoint", ollama_endpoint, "--model",
-         runtime_ollama_model(dotenv), "--mcp", (workspace / ".vscode" / "mcp.json").string(), "--tool", "hello.repeat",
+         runtime_ollama_model(dotenv), "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool", "hello.repeat",
          "You must call the hello.repeat tool with text hi and count 3, then answer with the repeated text."},
         input, output, error_output, nullptr);
 
@@ -233,7 +233,7 @@ TEST(McpClientDockerIntegrationTests, NativeClientListsAndCallsPrestartedSseServ
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
-    options.config_path = workspace / ".vscode" / "mcp.json";
+    options.config_path = workspace_mcp_config_path(workspace);
     options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");

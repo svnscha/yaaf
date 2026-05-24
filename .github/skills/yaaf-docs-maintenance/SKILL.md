@@ -72,7 +72,7 @@ Build and validation sources:
 - Use `yaaf.exe` in user examples when the build output directory is assumed to be on `PATH`.
 - Mention the exact assumption for examples: repository root, executable directory, or build output directory on `PATH`.
 - Keep environment variable precedence accurate: process environment first, then nearest parent `.env` where implemented.
-- Keep MCP config path selection explicit only: `--mcp <path>` or `YAAF_MCP_FILE`; yaaf must not auto-discover `.vscode/mcp.json`.
+- Keep MCP config path selection explicit only: `--mcp <path>` or `YAAF_MCP_FILE`; yaaf must not auto-discover editor-owned MCP config files outside `.yaaf/mcp.json`.
 - Do not document `${input:...}` as supported; yaaf rejects it. Use `${env:NAME}` or `envFile` examples instead.
 - Keep fixture-only environment variables out of normal user configuration docs. Document them only as test or fixture overrides.
 - Document modules by public API name rather than implementation layer; users should not need to know whether a module is native C++ or shipped Lua.
