@@ -9,6 +9,7 @@
         "CC": "clang",
         "CMAKE_TOOLCHAIN_FILE": "${containerWorkspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "CXX": "clang++",
+        "VCPKG_FORCE_SYSTEM_BINARIES": "1",
         "VCPKG_OVERLAY_TRIPLETS": "${containerWorkspaceFolder}/triplets",
         "VCPKG_TARGET_TRIPLET": "x64-linux-musl-static",
         "VCPKG_ROOT": "${containerWorkspaceFolder}/vcpkg"
@@ -30,6 +31,7 @@
                     "CC": "clang",
                     "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
                     "CXX": "clang++",
+                    "VCPKG_FORCE_SYSTEM_BINARIES": "1",
                     "VCPKG_OVERLAY_TRIPLETS": "${workspaceFolder}/triplets",
                     "VCPKG_TARGET_TRIPLET": "x64-linux-musl-static",
                     "VCPKG_ROOT": "${workspaceFolder}/vcpkg"

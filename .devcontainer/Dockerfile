@@ -2,8 +2,6 @@ FROM alpine:3.20
 
 ARG LLVM_VERSION=18
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
 RUN apk add --no-cache \
         bash \
         build-base \
@@ -25,6 +23,7 @@ RUN apk add --no-cache \
         unzip \
         xz \
         zip \
+    && ln -sf /usr/lib/ninja-build/bin/ninja /usr/bin/ninja \
     && ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang \
     && ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ \
     && ln -sf /usr/bin/clangd-${LLVM_VERSION} /usr/bin/clangd \
@@ -36,3 +35,5 @@ RUN apk add --no-cache \
     && chmod 0440 /etc/sudoers.d/vscode \
     && chown vscode:vscode /workspaces \
     && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
