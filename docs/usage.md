@@ -13,7 +13,7 @@ macOS:
 - Git
 - vcpkg checked out locally with `VCPKG_ROOT` set
 
-Ubuntu Linux:
+Linux contributor build:
 
 - A C++20-capable toolchain such as `build-essential`
 - CMake 3.21 or newer
@@ -34,7 +34,7 @@ git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
 export VCPKG_ROOT="$HOME/vcpkg"
 ```
 
-Ubuntu Linux setup:
+Ubuntu Linux contributor setup:
 
 ```sh
 sudo apt update
@@ -46,7 +46,7 @@ export VCPKG_ROOT="$HOME/vcpkg"
 
 If you use VS Code with CMake Tools, either start VS Code from a shell where `VCPKG_ROOT` is already exported, or set `cmake.configureEnvironment.VCPKG_ROOT` to the same path.
 
-Contributors on Linux should use the same CMake plus vcpkg path used by the Ubuntu CI job and the Linux devcontainer.
+Contributors on Linux can still use the normal distro-native CMake plus vcpkg path for day-to-day development builds. The release artifact path uses the musl static preset and the musl-native Linux devcontainer / CI environment.
 
 Configure and build with CMake and the vcpkg toolchain:
 
@@ -62,7 +62,33 @@ build/app/yaaf
 build/app/Debug/yaaf
 ```
 
-On Linux, the normal contributor executable path is `build/app/yaaf`. The first Linux package is built on Ubuntu and should be treated as an Ubuntu-targeted artifact rather than a universal package for every Linux distribution. The current CI runtime smoke checks pass on Ubuntu 24.04 and record the expected Ubuntu 22.04 failure caused by newer glibc/libstdc++ requirements in the packaged binary.
+On Linux, the normal contributor executable path is `build/app/yaaf`. The packaged Linux release artifact is `build/linux-musl-static/app/yaaf` and is built as a musl-based static executable. CI validates that artifact as statically linked and smoke-tests the packaged bundle on both Alpine and Debian.
+
+### Linux musl release reproduction
+
+Use this path when you want to reproduce the Linux release artifact locally.
+
+Recommended environment:
+
+- the repository devcontainer, which already provisions the musl-native toolchain, pinned CMake, and Ninja used by CI
+- or another Alpine / musl-native environment with the same prerequisites
+
+Configure and build the musl release artifact:
+
+```sh
+cmake --preset linux-musl-static
+cmake --build build/linux-musl-static --config Release --target yaaf
+```
+
+Verify the binary is static and run the same smoke commands used by CI:
+
+```sh
+file build/linux-musl-static/app/yaaf
+build/linux-musl-static/app/yaaf --help
+build/linux-musl-static/app/yaaf run examples/example.lua smoke-test
+```
+
+The Linux release package step copies `lua/` and `examples/` next to the executable, so the packaged bundle remains runnable from its own directory.
 
 The build also copies `lua/` and `examples/` next to the executable, so the app can discover its Lua command modules and run included examples from the executable directory. The native runtime resolves bundled Lua modules (such as `require("yaaf")`, `require("llm")`, and the `lua/cli/*` command modules) from this executable-adjacent `lua/` tree, so `yaaf` behaves the same regardless of the caller's current working directory. Script-local `require(...)` lookups next to the invoked `.lua` file still take precedence over the bundled tree.
 

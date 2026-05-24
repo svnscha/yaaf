@@ -1,42 +1,55 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+FROM alpine:3.20
 
-ARG DEBIAN_FRONTEND=noninteractive
-ARG LLVM_VERSION=20
+ARG CMAKE_VERSION=4.3.2
+ARG NINJA_VERSION=1.13.2
+ARG LLVM_VERSION=18
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl gpg wget \
-    && mkdir -p /usr/share/keyrings \
-    && wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://apt.llvm.org/noble/ llvm-toolchain-noble-${LLVM_VERSION} main" \
-        > /etc/apt/sources.list.d/llvm.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        clang-${LLVM_VERSION} \
-        clangd-${LLVM_VERSION} \
-        clang-tools-${LLVM_VERSION} \
+RUN apk add --no-cache \
+        bash \
+        build-base \
+        ca-certificates \
+        clang${LLVM_VERSION} \
+        clang${LLVM_VERSION}-extra-tools \
         cmake \
+        curl \
         git \
-        lld-${LLVM_VERSION} \
-        lldb-${LLVM_VERSION} \
+        lld \
+        lldb \
+        linux-headers \
         ninja-build \
-        pkg-config \
-        python-is-python3 \
+        perl \
+        pkgconf \
+        py3-pip \
+        py3-virtualenv \
         python3 \
-        python3-pip \
-        python3-venv \
+        sudo \
         tar \
         unzip \
-        xz-utils \
+        xz \
         zip \
-    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 100 \
-    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 100 \
-    && update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-${LLVM_VERSION} 100 \
-    && update-alternatives --install /usr/bin/clang-scan-deps clang-scan-deps /usr/bin/clang-scan-deps-${LLVM_VERSION} 100 \
-    && update-alternatives --install /usr/bin/lld lld /usr/bin/lld-${LLVM_VERSION} 100 \
-    && update-alternatives --install /usr/bin/lldb lldb /usr/bin/lldb-${LLVM_VERSION} 100 \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang \
+    && ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ \
+    && ln -sf /usr/bin/clangd-${LLVM_VERSION} /usr/bin/clangd \
+    && ln -sf /usr/bin/clang-scan-deps-${LLVM_VERSION} /usr/bin/clang-scan-deps \
+    && addgroup -g 1000 vscode \
+    && adduser -D -u 1000 -G vscode -s /bin/bash vscode \
+    && mkdir -p /etc/sudoers.d /workspaces \
+    && echo 'vscode ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode \
+    && chown vscode:vscode /workspaces \
+    && python3 -m pip install --break-system-packages --no-cache-dir "cmake==${CMAKE_VERSION}" \
+    && cmake_bin_dir="$(python3 -c 'import cmake; print(cmake.CMAKE_BIN_DIR)')" \
+    && ln -sf "${cmake_bin_dir}/cmake" /usr/local/bin/cmake \
+    && ln -sf "${cmake_bin_dir}/ccmake" /usr/local/bin/ccmake \
+    && ln -sf "${cmake_bin_dir}/cpack" /usr/local/bin/cpack \
+    && ln -sf "${cmake_bin_dir}/ctest" /usr/local/bin/ctest \
+    && curl -fsSL "https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz" -o /tmp/ninja-src.tar.gz \
+    && tar -xzf /tmp/ninja-src.tar.gz -C /tmp \
+    && cd "/tmp/ninja-${NINJA_VERSION}" \
+    && python3 configure.py --bootstrap \
+    && install -m 0755 ninja /usr/local/bin/ninja \
+    && ln -sf /usr/local/bin/ninja /usr/bin/ninja \
+    && rm -rf /tmp/ninja-src.tar.gz "/tmp/ninja-${NINJA_VERSION}" \
+    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
