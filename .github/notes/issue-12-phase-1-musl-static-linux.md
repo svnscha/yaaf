@@ -42,6 +42,8 @@ Resolved transitive dependencies observed in the dry run:
 - `vcpkg-cmake-config`
 - `vcpkg-cmake-get-vars`
 
-## Current blocker for full configure/build validation
+## Current local build path
 
-This Ubuntu dev container does not provide a native musl C++ toolchain or musl runtime sysroot, and Docker is not available here for an Alpine-based validation run. That means Phase 1 can verify the repository-owned configuration path and dependency graph, but a full `cmake --preset linux-musl-static` configure/build should be executed in the future musl build environment added by a later phase.
+The repository devcontainer now switches to an Alpine-based musl-native toolchain so contributors can exercise the `linux-musl-static` preset locally after rebuilding the container.
+
+The remaining validation gap is CI coverage: the full `cmake --preset linux-musl-static` configure/build and runtime smoke matrix still need to move into the repository workflow before the Linux release path can be considered migrated.

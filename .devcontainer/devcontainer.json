@@ -1,5 +1,5 @@
 {
-    "name": "yaaf Linux clang",
+    "name": "yaaf Linux musl",
     "build": {
         "context": "..",
         "dockerfile": "Dockerfile"
@@ -9,6 +9,8 @@
         "CC": "clang",
         "CMAKE_TOOLCHAIN_FILE": "${containerWorkspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
         "CXX": "clang++",
+        "VCPKG_OVERLAY_TRIPLETS": "${containerWorkspaceFolder}/triplets",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-musl-static",
         "VCPKG_ROOT": "${containerWorkspaceFolder}/vcpkg"
     },
     "postCreateCommand": "bash ./.devcontainer/setup-vcpkg.sh",
@@ -22,18 +24,19 @@
                 "twxs.cmake"
             ],
             "settings": {
-                "cmake.buildDirectory": "${workspaceFolder}/build",
-                "cmake.configureArgs": [
-                    "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-                ],
+                "cmake.buildDirectory": "${workspaceFolder}/build/linux-musl-static",
+                "cmake.configurePreset": "linux-musl-static",
                 "cmake.configureEnvironment": {
                     "CC": "clang",
                     "CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
                     "CXX": "clang++",
+                    "VCPKG_OVERLAY_TRIPLETS": "${workspaceFolder}/triplets",
+                    "VCPKG_TARGET_TRIPLET": "x64-linux-musl-static",
                     "VCPKG_ROOT": "${workspaceFolder}/vcpkg"
                 },
                 "cmake.configureOnOpen": true,
-                "cmake.generator": "Ninja"
+                "cmake.generator": "Ninja",
+                "cmake.useCMakePresets": "always"
             }
         }
     }
