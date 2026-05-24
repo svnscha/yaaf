@@ -646,6 +646,112 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredHttpModule)
 }
 
 
+TEST(ScriptLuaTests, HttpModuleExposesRequestBasedMethods)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_http_request_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local http = require('http')\n";
+        script << "local put_response = http.put({ url = 'http://example.test/put', body = 'put-body', content_type = "
+                  "'text/plain' })\n";
+        script << "local patch_response = http.request({\n";
+        script << "  method = 'PATCH',\n";
+        script << "  url = 'http://example.test/patch',\n";
+        script << "  headers = { ['X-Mode'] = 'rich' },\n";
+        script << "  timeout = 2500,\n";
+        script << "})\n";
+        script << "local delete_response = http.delete({ url = 'http://example.test/delete', headers = { "
+                  "['X-Delete'] = 'yes' } })\n";
+        script << "local head_response = http.head({ url = 'http://example.test/head', timeout = 1200 })\n";
+        script << "print(put_response.status_code)\n";
+        script << "print(patch_response.headers['X-Method'])\n";
+        script << "print(delete_response.status_code)\n";
+        script << "print(head_response.status_code)\n";
+    }
+
+    std::size_t call_count = 0;
+    yaaf::cli::Services services;
+    services.http_request = [&call_count](const HttpClient::Request &request) -> HttpClient::Response {
+        HttpClient::Response response;
+
+        if (call_count == 0)
+        {
+            EXPECT_EQ(request.method, "PUT");
+            EXPECT_EQ(request.url, "http://example.test/put");
+            EXPECT_TRUE(request.body.has_value());
+            if (request.body.has_value())
+            {
+                EXPECT_EQ(*request.body, "put-body");
+            }
+            EXPECT_TRUE(request.content_type.has_value());
+            if (request.content_type.has_value())
+            {
+                EXPECT_EQ(*request.content_type, "text/plain");
+            }
+            EXPECT_FALSE(request.timeout.has_value());
+            response.status_code = 202;
+        }
+        else if (call_count == 1)
+        {
+            EXPECT_EQ(request.method, "PATCH");
+            EXPECT_EQ(request.url, "http://example.test/patch");
+            EXPECT_EQ(request.headers.size(), 1U);
+            if (!request.headers.empty())
+            {
+                EXPECT_EQ(request.headers.front().first, "X-Mode");
+                EXPECT_EQ(request.headers.front().second, "rich");
+            }
+            EXPECT_TRUE(request.timeout.has_value());
+            if (request.timeout.has_value())
+            {
+                EXPECT_EQ(*request.timeout, std::chrono::milliseconds{2500});
+            }
+            response.status_code = 200;
+            response.headers = {{"X-Method", "PATCH"}};
+        }
+        else if (call_count == 2)
+        {
+            EXPECT_EQ(request.method, "DELETE");
+            EXPECT_EQ(request.url, "http://example.test/delete");
+            EXPECT_EQ(request.headers.size(), 1U);
+            if (!request.headers.empty())
+            {
+                EXPECT_EQ(request.headers.front().first, "X-Delete");
+                EXPECT_EQ(request.headers.front().second, "yes");
+            }
+            response.status_code = 204;
+        }
+        else
+        {
+            EXPECT_EQ(request.method, "HEAD");
+            EXPECT_EQ(request.url, "http://example.test/head");
+            EXPECT_TRUE(request.timeout.has_value());
+            if (request.timeout.has_value())
+            {
+                EXPECT_EQ(*request.timeout, std::chrono::milliseconds{1200});
+            }
+            EXPECT_FALSE(request.body.has_value());
+            response.status_code = 200;
+        }
+
+        ++call_count;
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(call_count, 4U);
+    EXPECT_EQ(output.str(), "202\nPATCH\n204\n200\n");
+}
+
 namespace
 {
 class ScopedCurrentPath

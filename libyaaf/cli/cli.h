@@ -8,6 +8,7 @@ namespace yaaf::cli
 {
 struct Services
 {
+    std::function<HttpClient::Response(const HttpClient::Request &request)> http_request;
     std::function<HttpClient::Response(std::string_view url, const HttpClient::Headers &headers)> http_get;
     std::function<HttpClient::Response(std::string_view url, std::string_view body, std::string_view content_type,
                                        const HttpClient::Headers &headers,

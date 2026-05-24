@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <functional>
 
 class HttpClient
@@ -14,6 +15,17 @@ class HttpClient
         std::string content_type;
         std::string body;
         Headers headers;
+    };
+
+    struct Request
+    {
+        std::string method = "GET";
+        std::string url;
+        Headers headers;
+        std::optional<std::string> body;
+        std::optional<std::string> content_type;
+        std::optional<std::chrono::milliseconds> timeout;
+        ResponseChunkHandler on_response_chunk;
     };
 
     struct Options
@@ -32,6 +44,16 @@ class HttpClient
     HttpClient(const HttpClient &other) = delete;
     HttpClient &operator=(const HttpClient &other) = delete;
 
+    /**
+     * Executes a single HTTP request.
+     *
+     * The optional timeout is a total request timeout, including connection and response transfer.
+     *
+     * @param request Request configuration including method, URL, headers, optional body, and optional timeout.
+     * @return Completed HTTP response including status, response body, and parsed headers.
+     * @throws std::runtime_error if libcurl setup or execution fails.
+     */
+    [[nodiscard]] Response execute(const Request &request) const;
     [[nodiscard]] Response get(std::string_view url) const;
     [[nodiscard]] Response get(std::string_view url, const Headers &headers) const;
     [[nodiscard]] Response post(std::string_view url, std::string_view body,

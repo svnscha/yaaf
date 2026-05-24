@@ -56,6 +56,29 @@ namespace
     return std::nullopt;
 }
 
+[[nodiscard]] std::optional<std::string> response_header_value_case_insensitive(const HttpClient::Response &response,
+                                                                                std::string_view key)
+{
+    const auto matches_key = [key](std::string_view candidate) {
+        return candidate.size() == key.size() &&
+               std::equal(candidate.begin(), candidate.end(), key.begin(),
+                          [](const char lhs, const char rhs) {
+                              return std::tolower(static_cast<unsigned char>(lhs)) ==
+                                     std::tolower(static_cast<unsigned char>(rhs));
+                          });
+    };
+
+    for (const auto &[name, value] : response.headers)
+    {
+        if (matches_key(name))
+        {
+            return value;
+        }
+    }
+
+    return std::nullopt;
+}
+
 [[nodiscard]] bool httpbin_fixture_available(std::string_view base_url)
 {
     try
@@ -140,6 +163,89 @@ TEST(HttpClientTests, PostReturnsSubmittedJson)
     const auto content_type = json_string_value_case_insensitive(payload["headers"], "content-type");
     ASSERT_TRUE(content_type.has_value());
     EXPECT_EQ(*content_type, "application/json");
+}
+
+TEST(HttpClientTests, ExecuteSupportsPatchHeadersAndBody)
+{
+    const auto base_url = yaaf::tests::runtime_httpbin_base_url();
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
+    const auto request_url = yaaf::tests::join_fixture_url(base_url, "/patch");
+    HttpClient client{yaaf::tests::runtime_http_options_for_url(request_url)};
+
+    HttpClient::Request request;
+    request.method = "PATCH";
+    request.url = request_url;
+    request.body = R"({"message":"patched","count":3})";
+    request.content_type = "application/json";
+    request.headers = {{"X-Yaaf-Request", "patch"}};
+
+    const auto response = client.execute(request);
+
+    EXPECT_EQ(response.status_code, 200);
+    EXPECT_NE(response.content_type.find("application/json"), std::string::npos);
+
+    const auto payload = parse_json_body(response);
+    ASSERT_TRUE(payload.contains("data"));
+    ASSERT_TRUE(payload["data"].is_string());
+    EXPECT_EQ(payload["data"], *request.body);
+    ASSERT_TRUE(payload.contains("json"));
+    ASSERT_TRUE(payload["json"].is_object());
+    EXPECT_EQ(payload["json"]["message"], "patched");
+    EXPECT_EQ(payload["json"]["count"], 3);
+    ASSERT_TRUE(payload.contains("headers"));
+    const auto content_type = json_string_value_case_insensitive(payload["headers"], "content-type");
+    ASSERT_TRUE(content_type.has_value());
+    EXPECT_EQ(*content_type, "application/json");
+    const auto forwarded_header = json_string_value_case_insensitive(payload["headers"], "x-yaaf-request");
+    ASSERT_TRUE(forwarded_header.has_value());
+    EXPECT_EQ(*forwarded_header, "patch");
+}
+
+TEST(HttpClientTests, ExecuteSupportsHeadResponses)
+{
+    const auto base_url = yaaf::tests::runtime_httpbin_base_url();
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
+    const auto request_url = yaaf::tests::join_fixture_url(base_url, "/response-headers?X-Yaaf-Head=yes");
+    HttpClient client{yaaf::tests::runtime_http_options_for_url(request_url)};
+
+    HttpClient::Request request;
+    request.method = "HEAD";
+    request.url = request_url;
+
+    const auto response = client.execute(request);
+
+    EXPECT_EQ(response.status_code, 200);
+    EXPECT_TRUE(response.body.empty());
+    const auto head_header = response_header_value_case_insensitive(response, "X-Yaaf-Head");
+    ASSERT_TRUE(head_header.has_value());
+    EXPECT_EQ(*head_header, "yes");
+}
+
+TEST(HttpClientTests, ExecuteAppliesPerRequestTimeout)
+{
+    const auto base_url = yaaf::tests::runtime_httpbin_base_url();
+    if (!httpbin_fixture_available(base_url))
+    {
+        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
+        return;
+    }
+    const auto request_url = yaaf::tests::join_fixture_url(base_url, "/delay/3");
+    HttpClient client{yaaf::tests::runtime_http_options_for_url(request_url)};
+
+    HttpClient::Request request;
+    request.method = "GET";
+    request.url = request_url;
+    request.timeout = std::chrono::milliseconds{100};
+
+    EXPECT_THROW(static_cast<void>(client.execute(request)), std::runtime_error);
 }
 
 TEST(HttpClientTests, MoveConstructionPreservesUsability)
