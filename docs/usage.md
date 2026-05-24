@@ -82,7 +82,7 @@ YAAF_PROXY=http://127.0.0.1:18080
 YAAF_MCP_FILE=./configs/tools.mcp.json
 ```
 
-`OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
+`OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence, and when neither is set yaaf auto-discovers `.yaaf/mcp.json` in the current working directory. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
 
 Current defaults:
 

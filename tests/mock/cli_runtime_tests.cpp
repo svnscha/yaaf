@@ -74,6 +74,76 @@ void write_file(const std::filesystem::path &path, std::string_view contents)
     std::ofstream file{path};
     file << contents;
 }
+
+class ScopedCurrentPath
+{
+  public:
+    explicit ScopedCurrentPath(const std::filesystem::path &path) : original_(std::filesystem::current_path())
+    {
+        std::filesystem::current_path(path);
+    }
+    ~ScopedCurrentPath()
+    {
+        std::error_code ignored;
+        std::filesystem::current_path(original_, ignored);
+    }
+    ScopedCurrentPath(const ScopedCurrentPath &) = delete;
+    ScopedCurrentPath &operator=(const ScopedCurrentPath &) = delete;
+
+  private:
+    std::filesystem::path original_;
+};
+
+class ScopedUnsetEnvironmentVariable
+{
+  public:
+    explicit ScopedUnsetEnvironmentVariable(std::string name) : name_(std::move(name))
+    {
+        if (const auto *current = std::getenv(name_.c_str()); current != nullptr)
+        {
+            original_ = current;
+        }
+#ifdef _WIN32
+        _putenv_s(name_.c_str(), "");
+#else
+        unsetenv(name_.c_str());
+#endif
+    }
+
+    ~ScopedUnsetEnvironmentVariable()
+    {
+        if (original_.has_value())
+        {
+#ifdef _WIN32
+            _putenv_s(name_.c_str(), original_->c_str());
+#else
+            setenv(name_.c_str(), original_->c_str(), 1);
+#endif
+        }
+    }
+
+    ScopedUnsetEnvironmentVariable(const ScopedUnsetEnvironmentVariable &) = delete;
+    ScopedUnsetEnvironmentVariable &operator=(const ScopedUnsetEnvironmentVariable &) = delete;
+
+  private:
+    std::string name_;
+    std::optional<std::string> original_;
+};
+
+[[nodiscard]] std::filesystem::path path_from_output(const std::ostringstream &output)
+{
+    auto value = output.str();
+    if (!value.empty() && value.back() == '\n')
+    {
+        value.pop_back();
+    }
+    return value;
+}
+
+void expect_equivalent_path_output(const std::ostringstream &output, const std::filesystem::path &expected)
+{
+    EXPECT_EQ(std::filesystem::weakly_canonical(path_from_output(output)), std::filesystem::weakly_canonical(expected));
+}
 } // namespace
 
 TEST(CliTests, RootHelpOmitsOllamaSubcommandOptions)
@@ -305,7 +375,7 @@ TEST(CliTests, RunSubcommandForwardsExplicitMcpOption)
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
-    EXPECT_EQ(output.str(), mcp_path.generic_string() + "\n");
+    expect_equivalent_path_output(output, mcp_path);
 
     std::filesystem::remove_all(workspace);
 }
@@ -342,6 +412,111 @@ TEST(CliTests, RunSubcommandFailsClearlyWhenScriptPathIsNotLua)
     EXPECT_EQ(error_output.str(), "yaaf failed: run requires a .lua script path\n");
 }
 
+TEST(CliTests, DefaultDiscoveryFindsYaafMcpJsonInWorkspaceRoot)
+{
+    const auto workspace = make_test_directory("mcp-default-discovery");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto mcp_path = workspace / ".yaaf" / "mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(mcp_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::ostringstream output;
+    {
+        const ScopedUnsetEnvironmentVariable env_guard{"YAAF_MCP_FILE"};
+        const ScopedCurrentPath scoped_path{workspace};
+
+        std::istringstream input;
+        std::ostringstream error_output;
+        const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+        EXPECT_EQ(exit_code, EXIT_SUCCESS);
+        EXPECT_TRUE(error_output.str().empty());
+    }
+    expect_equivalent_path_output(output, mcp_path);
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, EnvironmentVariableOverridesYaafMcpJsonDiscovery)
+{
+    const auto workspace = make_test_directory("mcp-env-over-discovery");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto discovered_path = workspace / ".yaaf" / "mcp.json";
+    const auto env_path = workspace / "env.mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(discovered_path, nlohmann::json{{"servers", {}}}.dump(2));
+    write_file(env_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::ostringstream output;
+    {
+        const ScopedEnvironmentVariable mcp_file{"YAAF_MCP_FILE", env_path.string()};
+        const ScopedCurrentPath scoped_path{workspace};
+
+        std::istringstream input;
+        std::ostringstream error_output;
+        const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+        EXPECT_EQ(exit_code, EXIT_SUCCESS);
+        EXPECT_TRUE(error_output.str().empty());
+    }
+    expect_equivalent_path_output(output, env_path);
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, ExplicitMcpOptionOverridesYaafMcpJsonDiscovery)
+{
+    const auto workspace = make_test_directory("mcp-explicit-over-discovery");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto discovered_path = workspace / ".yaaf" / "mcp.json";
+    const auto explicit_path = workspace / "explicit.mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(discovered_path, nlohmann::json{{"servers", {}}}.dump(2));
+    write_file(explicit_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::ostringstream output;
+    {
+        const ScopedUnsetEnvironmentVariable env_guard{"YAAF_MCP_FILE"};
+        const ScopedCurrentPath scoped_path{workspace};
+
+        std::istringstream input;
+        std::ostringstream error_output;
+        const auto exit_code = yaaf::cli::run(
+            {"run", "--mcp", explicit_path.string(), script_path.string()}, input, output, error_output);
+
+        EXPECT_EQ(exit_code, EXIT_SUCCESS);
+        EXPECT_TRUE(error_output.str().empty());
+    }
+    expect_equivalent_path_output(output, explicit_path);
+
+    std::filesystem::remove_all(workspace);
+}
+
+TEST(CliTests, RunSubcommandDiscoversYaafMcpJsonFromCurrentDirectory)
+{
+    const auto workspace = make_test_directory("run-mcp-discovery");
+    const auto script_path = workspace / "show_mcp.lua";
+    const auto mcp_path = workspace / ".yaaf" / "mcp.json";
+    write_file(script_path, "local mcp = require(\"mcp\")\nlocal config = mcp.config()\nprint(config.path)\n");
+    write_file(mcp_path, nlohmann::json{{"servers", {}}}.dump(2));
+
+    std::ostringstream output;
+    {
+        const ScopedUnsetEnvironmentVariable env_guard{"YAAF_MCP_FILE"};
+        const ScopedCurrentPath scoped_path{workspace};
+
+        std::istringstream input;
+        std::ostringstream error_output;
+        const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+        EXPECT_EQ(exit_code, EXIT_SUCCESS);
+        EXPECT_TRUE(error_output.str().empty());
+    }
+    expect_equivalent_path_output(output, mcp_path);
+
+    std::filesystem::remove_all(workspace);
+}
+
 TEST(CliTests, BuiltinCommandsAreLoadedFromLuaCliDirectory)
 {
     std::istringstream input;
@@ -357,3 +532,4 @@ TEST(CliTests, BuiltinCommandsAreLoadedFromLuaCliDirectory)
     EXPECT_EQ(payload.at("registries").at("agents").at(0).at("name"), "react");
     EXPECT_EQ(payload.at("registries").at("tools").at(0).at("name"), "echo");
 }
+

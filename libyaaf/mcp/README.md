@@ -6,7 +6,7 @@ For user-facing MCP setup and examples, see [MCP Tools](https://svnscha.github.i
 
 ## Configuration
 
-Yaaf reads the VS Code MCP configuration shape unchanged only when a config file path is supplied. CLI and Lua script runs can point at any file containing that same shape with `--mcp <path>`, or `YAAF_MCP_FILE` can provide the same path from the process environment or `.env`. The path selection changes only where the file is loaded from; it does not add yaaf-specific fields to the MCP JSON format.
+Yaaf reads the VS Code MCP configuration shape unchanged. CLI and Lua script runs select the config path in this precedence order: explicit `--mcp <path>`, then `YAAF_MCP_FILE` from the process environment or `.env`, then auto-discovery of `.yaaf/mcp.json` in the current working directory. The path selection changes only where the file is loaded from; it does not add yaaf-specific fields to the MCP JSON format.
 
 Supported top-level fields:
 
