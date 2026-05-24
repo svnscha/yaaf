@@ -245,6 +245,44 @@ TEST(CliTests, DoctorCanWriteJsonReport)
     EXPECT_TRUE(payload.at("mcp").at("path").get<std::string>().empty());
 }
 
+TEST(CliTests, DefaultEndpointUsesYaafOllamaEndpointEnvironmentVariable)
+{
+    const ScopedEnvironmentVariable yaaf_endpoint{"YAAF_OLLAMA_ENDPOINT", "http://yaaf-prefixed.test:9999"};
+    const ScopedEnvironmentVariable legacy_endpoint{"OLLAMA_ENDPOINT", "http://legacy-unprefixed.test:1111"};
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"doctor", "--format", "json"}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+
+    const auto payload = parse_json_output(output);
+    EXPECT_EQ(payload.at("environment").at("endpoint"), "http://yaaf-prefixed.test:9999");
+}
+
+TEST(CliTests, LegacyUnprefixedOllamaEndpointEnvironmentVariableIsIgnored)
+{
+    const ScopedEnvironmentVariable legacy_endpoint{"OLLAMA_ENDPOINT", "http://legacy-unprefixed.test:1111"};
+    const ScopedEnvironmentVariable yaaf_endpoint{"YAAF_OLLAMA_ENDPOINT", ""};
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"doctor", "--format", "json"}, input, output, error_output);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+
+    const auto payload = parse_json_output(output);
+    const auto endpoint = payload.at("environment").at("endpoint").get<std::string>();
+    EXPECT_NE(endpoint, "http://legacy-unprefixed.test:1111");
+    EXPECT_EQ(endpoint, "http://localhost:11434");
+}
+
 TEST(CliTests, McpFileEnvironmentLoadsConfigWithoutImplicitWorkspaceDiscovery)
 {
     const auto workspace = make_test_directory("mcp-file-env");

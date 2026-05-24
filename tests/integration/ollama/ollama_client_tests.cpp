@@ -16,7 +16,7 @@ constexpr std::string_view kEmbedModel = "nomic-embed-text:v1.5";
 [[nodiscard]] std::string ollama_endpoint()
 {
     static const std::string endpoint =
-        yaaf::tests::runtime_env_value(yaaf::tests::load_runtime_dotenv(), "OLLAMA_ENDPOINT")
+        yaaf::tests::runtime_env_value(yaaf::tests::load_runtime_dotenv(), "YAAF_OLLAMA_ENDPOINT")
             .value_or(std::string(kDefaultOllamaEndpoint));
     return endpoint;
 }

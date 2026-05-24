@@ -516,7 +516,7 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
 {
     const auto dotenv = yaaf::dotenv::EnvironmentFile::load_from_parents();
     const auto default_endpoint =
-        environment_or_dotenv(dotenv, "OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
+        environment_or_dotenv(dotenv, "YAAF_OLLAMA_ENDPOINT").value_or(std::string(kDefaultOllamaEndpoint));
     GlobalOptions global_options;
     global_options.http.proxy = environment_or_dotenv(dotenv, "YAAF_PROXY");
     global_options.mcp_config_path_env = environment_or_dotenv(dotenv, "YAAF_MCP_FILE").value_or("");

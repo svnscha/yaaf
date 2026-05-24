@@ -77,12 +77,12 @@ yaaf --help
 At startup the CLI reads these values from the process environment first, then from the nearest parent `.env` file:
 
 ```text
-OLLAMA_ENDPOINT=http://localhost:11434
+YAAF_OLLAMA_ENDPOINT=http://localhost:11434
 YAAF_PROXY=http://127.0.0.1:18080
 YAAF_MCP_FILE=./configs/tools.mcp.json
 ```
 
-`OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence, and when neither is set yaaf auto-discovers `.yaaf/mcp.json` in the current working directory. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
+`YAAF_OLLAMA_ENDPOINT` overrides the built-in `ollama` provider endpoint. `YAAF_PROXY` is used by CLI HTTP requests unless `--proxy` is passed explicitly. `YAAF_MCP_FILE` is the environment fallback for the MCP config file path; explicit `--mcp <path>` takes precedence, and when neither is set yaaf auto-discovers `.yaaf/mcp.json` in the current working directory. When a proxy is configured, the CLI relaxes TLS certificate verification for proxied requests so local mitmproxy HTTPS interception works during development.
 
 Current defaults:
 
@@ -301,3 +301,4 @@ yaaf --proxy http://127.0.0.1:18080 --get http://httpbin.org/get --pretty
 ```
 
 For MCP fixture traffic visible through mitmproxy, put the `host.docker.internal` fixture URL directly in the MCP config file you pass with `--mcp` or `YAAF_MCP_FILE`.
+
