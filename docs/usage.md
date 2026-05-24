@@ -288,18 +288,18 @@ yaaf --pretty embed --model nomic-embed-text:v1.5 "hello world"
 
 ## Proxy Testing
 
-Start the local mitmproxy test stack with Docker Compose:
+Start the local Docker test stack with Docker Compose:
 
 ```powershell
-docker compose -f docker-compose.mitmproxy.yml up
+docker compose -f docker-compose.test-stack.yml up
 ```
 
-The proxy listens on `http://127.0.0.1:18080`, and the mitmweb UI is available at `http://127.0.0.1:18081`. The same stack starts the hello-world MCP HTTP and SSE fixtures on `http://127.0.0.1:39231/mcp` and `http://127.0.0.1:39232/mcp`.
+The proxy listens on `http://127.0.0.1:18080`, the mitmweb UI is available at `http://127.0.0.1:18081`, the local `httpbin` fixture listens on `http://127.0.0.1:18082`, and the same stack starts the hello-world MCP HTTP and SSE fixtures on `http://127.0.0.1:39231/mcp` and `http://127.0.0.1:39232/mcp`.
 
 Smoke-test the CLI proxy path with a plain HTTP request:
 
 ```powershell
-yaaf --proxy http://127.0.0.1:18080 --get http://httpbin.org/get --pretty
+yaaf --proxy http://127.0.0.1:18080 --get http://host.docker.internal:18082/get?yaaf=proxy --pretty
 ```
 
 For MCP fixture traffic visible through mitmproxy, put the `host.docker.internal` fixture URL directly in the MCP config file you pass with `--mcp` or `YAAF_MCP_FILE`.

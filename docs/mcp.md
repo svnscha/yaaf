@@ -161,14 +161,16 @@ Real hello-world MCP fixture servers live in [mcp-servers](https://github.com/sv
 - `hello(name?: string)`: returns `Hello, <name>!`.
 - `repeat(text: string, count?: integer)`: repeats text a bounded number of times.
 
-The Docker Compose mitmproxy stack also starts the HTTP and SSE fixtures:
+The local Docker test stack also starts `httpbin` plus the HTTP and SSE fixtures:
 
 ```powershell
-docker compose -f docker-compose.mitmproxy.yml up
+docker compose -f docker-compose.test-stack.yml up
 ```
 
 Fixture URLs used by the Docker Compose stack:
 
+- HTTP client fixture: `http://127.0.0.1:18082`
+- HTTP client fixture through mitmproxy visibility: `http://host.docker.internal:18082`
 - HTTP: `http://127.0.0.1:39231/mcp`
 - HTTP through mitmproxy visibility: `http://host.docker.internal:39231/mcp`
 - SSE: `http://127.0.0.1:39232/mcp`
