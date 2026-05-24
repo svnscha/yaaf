@@ -4,39 +4,28 @@
 
 using namespace yaaf::tests::mcp;
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsRealUvStdioServer)
+TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
-    const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_real_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
     options.config_path = workspace_mcp_config_path(workspace);
+    options.stdio_process_factory = scripted_stdio_process_factory();
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpFixtureIntegrationTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpFixtureIntegrationTests, AskCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_ask_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -79,8 +68,8 @@ TEST(McpFixtureIntegrationTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConf
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
-                        "hello.hello", "Say", "hello", "through", "MCP"},
+        yaaf::cli::run({"ask", "--model", "lua-model", "--mcp", (workspace_mcp_config_path(workspace)).string(),
+                        "--tool", "hello.hello", "Say", "hello", "through", "MCP"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -91,20 +80,15 @@ TEST(McpFixtureIntegrationTests, AskCommandUsesRealStdioMcpToolFromWorkspaceConf
                             "assistant: The MCP server said hello.\n");
 }
 
-TEST(McpFixtureIntegrationTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpFixtureIntegrationTests, ChatCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_chat_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -156,20 +140,15 @@ TEST(McpFixtureIntegrationTests, ChatCommandUsesRealStdioMcpToolFromWorkspaceCon
                             "user: ");
 }
 
-TEST(McpFixtureIntegrationTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceConfig)
+TEST(McpFixtureIntegrationTests, AgentCommandUsesScriptedStdioMcpToolFromWorkspaceConfig)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_agent_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const CurrentPathGuard current_path{root};
 
     yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
     std::size_t chat_call_count = 0;
     services.chat = [&](const yaaf::llm::ChatRequest &request,
                         const yaaf::llm::ChatStreamCallback *on_stream_event) -> yaaf::llm::ChatResponse {
@@ -211,8 +190,8 @@ TEST(McpFixtureIntegrationTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceCo
     std::ostringstream error_output;
 
     const auto exit_code =
-        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(), "--tool",
-                        "hello.repeat", "Repeat hi through MCP"},
+        yaaf::cli::run({"agent", "--name", "react", "--mcp", (workspace_mcp_config_path(workspace)).string(),
+                        "--tool", "hello.repeat", "Repeat hi through MCP"},
                        input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
@@ -227,15 +206,9 @@ TEST(McpFixtureIntegrationTests, AgentCommandUsesRealStdioMcpToolFromWorkspaceCo
 
 TEST(McpFixtureIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_lua_script_config_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const auto script_path = write_lua_script(workspace, R"lua(
 local tool = require("tool")
 local result = tool.execute({ "hello.hello" }, "hello.hello", { name = "Lua" })
@@ -243,57 +216,46 @@ print(result.content)
 )lua");
     const CurrentPathGuard current_path{root};
 
+    yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
+
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error_output;
 
     const auto exit_code =
         yaaf::cli::run({"run", "--mcp", (workspace_mcp_config_path(workspace)).string(), script_path.string()}, input,
-                       output, error_output);
+                       output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "Hello, Lua!\n");
 }
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedHttpServer)
+TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedHttpServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_http_test");
-    write_runtime_dotenv(workspace);
-    const auto dotenv = runtime_dotenv(workspace);
-    const auto mcp_url = configured_mcp_url(dotenv, "YAAF_MCP_HELLO_HTTP_URL", "http://127.0.0.1:39231/mcp");
-    if (!http_fixture_available(mcp_url))
-    {
-        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
-    }
-
-    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "http"}, {"url", mcp_url}}}}}});
+    write_mcp_config(workspace,
+                     nlohmann::json{{"servers", {{"hello", {{"type", "http"}, {"url", "https://hello.test/mcp"}}}}}});
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
     options.config_path = workspace_mcp_config_path(workspace);
-    options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
+    options.http_post = hello_http_post(ScriptedHttpTransport::Json);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsPrestartedSseServer)
+TEST(McpFixtureIntegrationTests, NativeClientListsAndCallsScriptedSseServer)
 {
     const auto workspace = make_workspace("assistant_mcp_real_sse_test");
-    write_runtime_dotenv(workspace);
-    const auto dotenv = runtime_dotenv(workspace);
-    const auto mcp_url = configured_mcp_url(dotenv, "YAAF_MCP_HELLO_SSE_URL", "http://127.0.0.1:39232/mcp");
-    if (!http_fixture_available(mcp_url))
-    {
-        GTEST_SKIP() << "start the local test stack with docker compose -f docker-compose.test-stack.yml up";
-    }
-
-    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", {{"type", "sse"}, {"url", mcp_url}}}}}});
+    write_mcp_config(workspace,
+                     nlohmann::json{{"servers", {{"hello", {{"type", "sse"}, {"url", "https://hello.test/mcp"}}}}}});
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
     options.config_path = workspace_mcp_config_path(workspace);
-    options.http = yaaf::tests::runtime_http_options_for_url(mcp_url);
+    options.http_post = hello_http_post(ScriptedHttpTransport::Sse);
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }

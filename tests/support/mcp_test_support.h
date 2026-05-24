@@ -7,6 +7,7 @@
 
 #include "../../libyaaf/config/dotenv.h"
 #include "../../libyaaf/mcp/mcp_client.h"
+#include "../../libyaaf/mcp/mcp_client_stdio.h"
 #include "../../libyaaf/mcp/mcp_schema_generated.h"
 #include "runtime_test_environment.h"
 
@@ -202,6 +203,295 @@ inline void write_mcp_config(const std::filesystem::path &workspace, const nlohm
                                                           "python", script})}};
 }
 
+[[nodiscard]] inline nlohmann::json scripted_stdio_server_config(
+    const nlohmann::json &fixture = nlohmann::json{{"kind", "hello"}})
+{
+    return nlohmann::json{{"type", "stdio"}, {"command", "yaaf-scripted-mcp"}, {"fixture", fixture}};
+}
+
+enum class ScriptedHttpTransport
+{
+    Json,
+    Sse,
+};
+
+[[nodiscard]] inline std::string scripted_repeat_text(std::string_view text, int count)
+{
+    std::string joined;
+    for (int index = 0; index < count; ++index)
+    {
+        if (!joined.empty())
+        {
+            joined += ' ';
+        }
+        joined += text;
+    }
+    return joined;
+}
+
+class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProcess
+{
+  public:
+    explicit ScriptedStdioProcess(nlohmann::json raw)
+        : raw_(std::move(raw)), environment_(yaaf::mcp::detail::read_environment_overrides(raw_))
+    {
+    }
+
+    void write_message(std::string_view line) override
+    {
+        const auto message = nlohmann::json::parse(line);
+        const auto method = message.value("method", std::string{});
+        if (!message.contains("id"))
+        {
+            return;
+        }
+
+        if (method == "initialize")
+        {
+            const auto params = message.value("params", nlohmann::json::object());
+            nlohmann::json result;
+            result["protocolVersion"] = params.value("protocolVersion", std::string{});
+            result["capabilities"]["tools"] = nlohmann::json::object();
+            result["serverInfo"] = {{"name", server_name()}, {"version", "1"}};
+            push_result(message.at("id"), std::move(result));
+            return;
+        }
+
+        if (method == "tools/list")
+        {
+            nlohmann::json result;
+            result["tools"] = tools();
+            push_result(message.at("id"), std::move(result));
+            return;
+        }
+
+        if (method == "tools/call")
+        {
+            const auto params = message.value("params", nlohmann::json::object());
+            push_result(message.at("id"),
+                        call_result(params.value("name", std::string{}),
+                                    params.value("arguments", nlohmann::json::object())));
+            return;
+        }
+
+        push_error(message.at("id"), method.empty() ? "unknown" : method);
+    }
+
+    [[nodiscard]] nlohmann::json read_message(std::chrono::milliseconds) override
+    {
+        if (responses_.empty())
+        {
+            throw std::runtime_error("scripted MCP fixture has no pending response");
+        }
+
+        auto response = std::move(responses_.front());
+        responses_.erase(responses_.begin());
+        return response;
+    }
+
+  private:
+    [[nodiscard]] std::string fixture_kind() const
+    {
+        if (const auto fixture = raw_.find("fixture"); fixture != raw_.end() && fixture->is_object())
+        {
+            if (const auto kind = fixture->find("kind"); kind != fixture->end() && kind->is_string())
+            {
+                return kind->get<std::string>();
+            }
+        }
+        return "hello";
+    }
+
+    [[nodiscard]] std::string server_name() const
+    {
+        return fixture_kind() == "env" ? "env-stdio" : "hello-stdio";
+    }
+
+    [[nodiscard]] std::string environment_override(std::string_view key) const
+    {
+        if (const auto found = environment_.find(std::string(key)); found != environment_.end())
+        {
+            return found->second;
+        }
+        return {};
+    }
+
+    [[nodiscard]] nlohmann::json tools() const
+    {
+        nlohmann::json entries = nlohmann::json::array();
+        if (fixture_kind() == "env")
+        {
+            nlohmann::json tool;
+            tool["name"] = "env_values";
+            tool["description"] = "Return selected environment values.";
+            tool["inputSchema"] = {{"type", "object"}};
+            entries.push_back(std::move(tool));
+            return entries;
+        }
+
+        if (fixture_kind() == "error")
+        {
+            nlohmann::json tool;
+            tool["name"] = "fail";
+            tool["description"] = "Return a scripted MCP error result.";
+            tool["inputSchema"] = {{"type", "object"},
+                                   {"properties", {{"reason", {{"type", "string"}}}}}};
+            entries.push_back(std::move(tool));
+            return entries;
+        }
+
+        nlohmann::json hello;
+        hello["name"] = "hello";
+        hello["description"] = "Return a greeting.";
+        hello["inputSchema"] = {{"type", "object"},
+                                {"properties", {{"name", {{"type", "string"}}}}}};
+        entries.push_back(std::move(hello));
+
+        nlohmann::json repeat;
+        repeat["name"] = "repeat";
+        repeat["description"] = "Repeat text multiple times.";
+        repeat["inputSchema"] = {{"type", "object"},
+                                  {"properties", {{"text", {{"type", "string"}}},
+                                                   {"count", {{"type", "integer"}}}}}};
+        entries.push_back(std::move(repeat));
+        return entries;
+    }
+
+    [[nodiscard]] nlohmann::json call_result(const std::string &tool_name, const nlohmann::json &arguments) const
+    {
+        nlohmann::json result;
+        result["content"] = nlohmann::json::array();
+        result["isError"] = false;
+
+        if (fixture_kind() == "env")
+        {
+            result["content"].push_back({{"type", "text"},
+                                          {"text", environment_override("YAAF_MCP_ENV_FILE") + "|" +
+                                                       environment_override("YAAF_MCP_ENV_INLINE")}});
+            return result;
+        }
+
+        if (fixture_kind() == "error")
+        {
+            result["content"].push_back(
+                {{"type", "text"}, {"text", arguments.value("reason", std::string{"scripted failure"})}});
+            result["isError"] = true;
+            return result;
+        }
+
+        if (tool_name == "hello")
+        {
+            result["content"].push_back(
+                {{"type", "text"}, {"text", fmt::format("Hello, {}!", arguments.value("name", std::string{}))}});
+            return result;
+        }
+
+        if (tool_name == "repeat")
+        {
+            result["content"].push_back({{"type", "text"},
+                                          {"text", scripted_repeat_text(arguments.value("text", std::string{}),
+                                                                         arguments.value("count", 0))}});
+            return result;
+        }
+
+        throw std::runtime_error(fmt::format("unknown scripted MCP tool: {}", tool_name));
+    }
+
+    void push_result(const nlohmann::json &id, nlohmann::json result)
+    {
+        responses_.push_back(nlohmann::json{{"jsonrpc", "2.0"}, {"id", id}, {"result", std::move(result)}});
+    }
+
+    void push_error(const nlohmann::json &id, std::string_view method)
+    {
+        responses_.push_back(nlohmann::json{{"jsonrpc", "2.0"},
+                                            {"id", id},
+                                            {"error", {{"code", -32601}, {"message", std::string(method)}}}});
+    }
+
+    nlohmann::json raw_;
+    std::map<std::string, std::string> environment_;
+    std::vector<nlohmann::json> responses_;
+};
+
+[[nodiscard]] inline yaaf::mcp::StdioProcessFactory scripted_stdio_process_factory()
+{
+    return [](const nlohmann::json &raw) { return std::make_unique<ScriptedStdioProcess>(raw); };
+}
+
+[[nodiscard]] inline HttpClient::Response scripted_http_response(const nlohmann::json &payload,
+                                                                 ScriptedHttpTransport transport,
+                                                                 yaaf::mcp::Headers headers = {})
+{
+    if (transport == ScriptedHttpTransport::Sse)
+    {
+        return sse_response(payload, std::move(headers));
+    }
+
+    auto response = json_response(payload);
+    response.headers = std::move(headers);
+    return response;
+}
+
+[[nodiscard]] inline yaaf::mcp::HttpPost hello_http_post(ScriptedHttpTransport transport)
+{
+    return [transport](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
+        const auto request = nlohmann::json::parse(body);
+        const auto method = request.at("method").get<std::string>();
+        if (method == "notifications/initialized")
+        {
+            return HttpClient::Response{202, "", ""};
+        }
+
+        nlohmann::json payload;
+        payload["jsonrpc"] = "2.0";
+        payload["id"] = request.at("id");
+
+        if (method == "initialize")
+        {
+            payload["result"]["protocolVersion"] = request.at("params").at("protocolVersion");
+            payload["result"]["capabilities"]["tools"] = nlohmann::json::object();
+            payload["result"]["serverInfo"] = {{"name", "hello-http"}, {"version", "1"}};
+            return scripted_http_response(payload, transport, {{"Mcp-Session-Id", "scripted-session"}});
+        }
+
+        if (method == "tools/list")
+        {
+            payload["result"]["tools"] = nlohmann::json::array();
+            payload["result"]["tools"].push_back({{"name", "hello"}, {"description", "Return a greeting."}});
+            payload["result"]["tools"].push_back(
+                {{"name", "repeat"}, {"description", "Repeat text multiple times."}});
+            return scripted_http_response(payload, transport);
+        }
+
+        if (method == "tools/call")
+        {
+            const auto params = request.at("params");
+            const auto tool_name = params.at("name").get<std::string>();
+            const auto arguments = params.value("arguments", nlohmann::json::object());
+            payload["result"]["content"] = nlohmann::json::array();
+            payload["result"]["isError"] = false;
+            if (tool_name == "hello")
+            {
+                payload["result"]["content"].push_back(
+                    {{"type", "text"}, {"text", fmt::format("Hello, {}!", arguments.value("name", std::string{}))}});
+                return scripted_http_response(payload, transport);
+            }
+            if (tool_name == "repeat")
+            {
+                payload["result"]["content"].push_back(
+                    {{"type", "text"},
+                     {"text", scripted_repeat_text(arguments.value("text", std::string{}), arguments.value("count", 0))}});
+                return scripted_http_response(payload, transport);
+            }
+        }
+
+        payload["error"]["code"] = -32601;
+        payload["error"]["message"] = method;
+        return scripted_http_response(payload, transport);
+    };
+}
+
 inline void write_runtime_dotenv(const std::filesystem::path &workspace)
 {
     const auto root_dotenv = repository_root() / ".env";
@@ -348,3 +638,5 @@ class TestSchemaRegistry final : public yaaf::mcp::schema::Registry
     std::vector<yaaf::mcp::schema::VersionInfo> versions_;
 };
 } // namespace yaaf::tests::mcp
+
+

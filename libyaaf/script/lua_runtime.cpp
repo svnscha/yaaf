@@ -248,6 +248,10 @@ int run_file_impl(const LuaRuntimeOptions &options, const Services *services, nl
         {
             mcp_context.options.http_post = services->mcp_http_post;
         }
+        if (services != nullptr && services->mcp_stdio_process_factory)
+        {
+            mcp_context.options.stdio_process_factory = services->mcp_stdio_process_factory;
+        }
         if (services != nullptr && services->mcp_schema_registry != nullptr)
         {
             mcp_context.options.schema_registry = services->mcp_schema_registry;
@@ -304,3 +308,7 @@ int run_file(const LuaRuntimeOptions &options, const Services *services)
     return run_file_impl(options, services, nullptr);
 }
 } // namespace yaaf::script
+
+
+
+

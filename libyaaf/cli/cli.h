@@ -15,6 +15,7 @@ struct Services
                                        const HttpClient::ResponseChunkHandler *on_response_chunk)>
         http_post;
     yaaf::mcp::HttpPost mcp_http_post;
+    yaaf::mcp::StdioProcessFactory mcp_stdio_process_factory;
     std::function<yaaf::llm::GenerateResponse(const yaaf::llm::GenerateRequest &request,
                                               const yaaf::llm::StreamCallback *on_stream_event)>
         generate;

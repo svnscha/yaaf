@@ -4,83 +4,22 @@
 
 using namespace yaaf::tests::mcp;
 
-namespace
+TEST(McpClientIntegrationTests, NativeClientListsAndCallsScriptedStdioServer)
 {
-} // namespace
-
-TEST(McpClientIntegrationTests, NativeClientListsAndCallsRealUvStdioServer)
-{
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
-    const auto root = repository_root();
     const auto workspace = make_workspace("assistant_mcp_real_stdio_test");
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
 
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
     options.config_path = workspace_mcp_config_path(workspace);
+    options.stdio_process_factory = scripted_stdio_process_factory();
     yaaf::mcp::Client client{options};
     expect_hello_tools(client, "hello");
 }
 
-TEST(McpClientIntegrationTests, NativeClientPassesEnvFileAndEnvOverridesToRealStdioServer)
+TEST(McpClientIntegrationTests, NativeClientPassesEnvFileAndEnvOverridesToScriptedStdioServer)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
     const auto workspace = make_workspace("assistant_mcp_stdio_env_test");
-    const auto script_path = workspace / "env_stdio.py";
-    {
-        std::ofstream script{script_path};
-        script << R"python(
-from __future__ import annotations
-
-import json
-import os
-import sys
-
-TOOLS = [{
-    "name": "env_values",
-    "description": "Return selected environment values.",
-    "inputSchema": {"type": "object"},
-}]
-
-def respond(request_id, result):
-    print(json.dumps({"jsonrpc": "2.0", "id": request_id, "result": result}, separators=(",", ":")), flush=True)
-
-for line in sys.stdin:
-    if not line.strip():
-        continue
-    message = json.loads(line)
-    request_id = message.get("id")
-    if request_id is None:
-        continue
-    method = message.get("method")
-    if method == "initialize":
-        respond(request_id, {
-            "protocolVersion": message.get("params", {}).get("protocolVersion", "2025-11-25"),
-            "capabilities": {"tools": {}},
-            "serverInfo": {"name": "env-stdio", "version": "1"},
-        })
-    elif method == "tools/list":
-        respond(request_id, {"tools": TOOLS})
-    elif method == "tools/call":
-        payload = "|".join([
-            os.environ.get("YAAF_MCP_ENV_FILE", ""),
-            os.environ.get("YAAF_MCP_ENV_INLINE", ""),
-        ])
-        respond(request_id, {"content": [{"type": "text", "text": payload}], "isError": False})
-    else:
-        print(json.dumps({"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": method}}, separators=(",", ":")), flush=True)
-)python";
-    }
-
     const auto env_file = workspace / "stdio.env";
     {
         std::ofstream output{env_file};
@@ -90,11 +29,7 @@ for line in sys.stdin:
         output << "ignored-without-separator\n";
     }
 
-    nlohmann::json server_config;
-    server_config["type"] = "stdio";
-    server_config["command"] = "uv";
-    server_config["args"] =
-        nlohmann::json::array({"--directory", workspace.generic_string(), "run", "python", "env_stdio.py"});
+    auto server_config = scripted_stdio_server_config({{"kind", "env"}});
     server_config["envFile"] = env_file.generic_string();
     server_config["env"] = {{"YAAF_MCP_ENV_INLINE", "from-env"}};
     write_mcp_config(workspace, nlohmann::json{{"servers", {{"env", server_config}}}});
@@ -102,6 +37,7 @@ for line in sys.stdin:
     yaaf::mcp::ClientOptions options;
     options.workspace_root = workspace;
     options.config_path = workspace_mcp_config_path(workspace);
+    options.stdio_process_factory = scripted_stdio_process_factory();
     yaaf::mcp::Client client{options};
 
     const auto result = client.call_tool("env", "env_values", nlohmann::json::object());
@@ -110,23 +46,43 @@ for line in sys.stdin:
     EXPECT_EQ(result.content, "from-file|from-env");
 }
 
-TEST(McpClientIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
+TEST(McpClientIntegrationTests, NativeClientMapsScriptedStdioToolFailures)
 {
-    if (!executable_on_path("uv"))
-    {
-        GTEST_SKIP() << "uv is required for real MCP fixture server tests";
-    }
-
-    const auto root = repository_root();
-    const auto workspace = make_workspace("assistant_mcp_lua_script_config_test");
+    const auto workspace = make_workspace("assistant_mcp_stdio_error_test");
     write_mcp_config(workspace,
-                     nlohmann::json{{"servers", {{"hello", uv_stdio_server_config(root, "hello_stdio.py")}}}});
+                     nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config({{"kind", "error"}})}}}});
+
+    yaaf::mcp::ClientOptions options;
+    options.workspace_root = workspace;
+    options.config_path = workspace_mcp_config_path(workspace);
+    options.stdio_process_factory = scripted_stdio_process_factory();
+    yaaf::mcp::Client client{options};
+
+    const auto tools = client.list_tools("hello");
+    ASSERT_EQ(tools.size(), 1U);
+    EXPECT_EQ(tools.front().name, "fail");
+    EXPECT_EQ(tools.front().input_schema.at("type"), "object");
+
+    const auto result = client.call_tool("hello", "fail", nlohmann::json{{"reason", "denied"}});
+
+    EXPECT_FALSE(result.success);
+    EXPECT_EQ(result.content, "denied");
+}
+
+TEST(McpClientIntegrationTests, LuaMcpModuleUsesExplicitMcpConfigPath)
+{
+    const auto root = repository_root();
+    const auto workspace = make_workspace("assistant_mcp_lua_direct_module_test");
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
     const auto script_path = write_lua_script(workspace, R"lua(
-local tool = require("tool")
-local result = tool.execute({ "hello.hello" }, "hello.hello", { name = "Lua" })
+local mcp = require("mcp")
+local result = mcp.call_tool("hello", "repeat", { text = "Lua", count = 2 })
 print(result.content)
 )lua");
     const CurrentPathGuard current_path{root};
+
+    yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
 
     std::istringstream input;
     std::ostringstream output;
@@ -134,9 +90,38 @@ print(result.content)
 
     const auto exit_code =
         yaaf::cli::run({"run", "--mcp", (workspace_mcp_config_path(workspace)).string(), script_path.string()}, input,
-                       output, error_output);
+                       output, error_output, &services);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(output.str(), "Lua Lua\n");
+}
+
+TEST(McpClientIntegrationTests, LuaScriptUsesExplicitMcpConfigPath)
+{
+    const auto root = repository_root();
+    const auto workspace = make_workspace("assistant_mcp_lua_script_config_test");
+    write_mcp_config(workspace, nlohmann::json{{"servers", {{"hello", scripted_stdio_server_config()}}}});
+    const auto script_path = write_lua_script(workspace, R"lua(
+local tool = require("tool")
+local result = tool.execute({ "hello.hello" }, "hello.hello", { name = "Lua" })
+print(result.content)
+)lua");
+    const CurrentPathGuard current_path{root};
+
+    yaaf::cli::Services services;
+    services.mcp_stdio_process_factory = scripted_stdio_process_factory();
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code =
+        yaaf::cli::run({"run", "--mcp", (workspace_mcp_config_path(workspace)).string(), script_path.string()}, input,
+                       output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "Hello, Lua!\n");
 }
+

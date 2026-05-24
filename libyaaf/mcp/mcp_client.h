@@ -5,9 +5,16 @@
 
 namespace yaaf::mcp
 {
+namespace detail
+{
+class StdioPlatformProcess;
+}
+
 using Headers = std::vector<std::pair<std::string, std::string>>;
 using HttpPost = std::function<HttpClient::Response(std::string_view url, std::string_view body,
                                                     std::string_view content_type, const Headers &headers)>;
+using StdioProcessFactory =
+    std::function<std::unique_ptr<detail::StdioPlatformProcess>(const nlohmann::json &raw)>;
 
 struct ServerConfig
 {
@@ -52,6 +59,7 @@ struct ClientOptions
     std::filesystem::path config_path;
     HttpClient::Options http;
     HttpPost http_post;
+    StdioProcessFactory stdio_process_factory;
     std::shared_ptr<const schema::Registry> schema_registry;
 };
 

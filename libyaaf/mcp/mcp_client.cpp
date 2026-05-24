@@ -306,7 +306,8 @@ class HttpTransport final : public Transport
 class StdioTransport final : public Transport
 {
   public:
-    explicit StdioTransport(const nlohmann::json &raw) : process_(detail::start_stdio_server(raw))
+    StdioTransport(const nlohmann::json &raw, StdioProcessFactory factory)
+        : process_(factory ? factory(raw) : detail::start_stdio_server(raw))
     {
     }
 
@@ -750,7 +751,7 @@ class Client::Impl
         }
         else if (server.type == "stdio")
         {
-            session.transport = std::make_unique<StdioTransport>(server.raw);
+            session.transport = std::make_unique<StdioTransport>(server.raw, options_.stdio_process_factory);
             const auto initialize = response_result(session.transport->request(make_request(
                 next_id_++, "initialize",
                 nlohmann::json{{"protocolVersion", std::string(registry_->latest_protocol_version())},
@@ -804,3 +805,7 @@ ToolResult Client::call_tool(const std::string &server_id, const std::string &to
     return impl_->call_tool(server_id, tool_name, arguments);
 }
 } // namespace yaaf::mcp
+
+
+
+
