@@ -181,7 +181,7 @@ local function encode_tools(tools)
             ["function"] = {
                 name = function_payload.name or "",
                 description = function_payload.description,
-                parameters = function_payload.arguments or {},
+                parameters = function_payload.parameters or function_payload.arguments or { type = "object" },
             },
         })
     end

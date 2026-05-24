@@ -883,3 +883,65 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderKeepsExplicitLocalhostEndpoint)
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "local\n");
 }
+
+TEST(ScriptLuaTests, BuiltInOpenAiProviderAcceptsToolParametersSchema)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_openai_parameters_tool_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local llm = require('llm')\n";
+        script << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini' })\n";
+        script << "local response = client.chat({\n";
+        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', parameters = { type = 'object', properties = { text = { type = 'string' } } } } }},\n";
+        script << "  messages = {{ role = 'user', content = 'hello' }},\n";
+        script << "})\n";
+        script << "print(response.message.content)\n";
+    }
+
+    yaaf::cli::Services services;
+    services.http_post = [&](std::string_view url, std::string_view body, std::string_view content_type,
+                             const HttpClient::Headers &headers,
+                             const HttpClient::ResponseChunkHandler *on_response_chunk) -> HttpClient::Response {
+        EXPECT_EQ(url, "http://openai.test/v1/chat/completions");
+        EXPECT_EQ(content_type, "application/json");
+        EXPECT_EQ(on_response_chunk, nullptr);
+        EXPECT_EQ(headers.size(), 1U);
+
+        const auto payload = nlohmann::json::parse(body, nullptr, false);
+        EXPECT_FALSE(payload.is_discarded());
+        if (payload.is_discarded())
+        {
+            return HttpClient::Response{};
+        }
+        EXPECT_TRUE(payload.contains("tools"));
+        if (!payload.contains("tools") || payload.at("tools").size() != 1U)
+        {
+            return HttpClient::Response{};
+        }
+        EXPECT_EQ(payload.at("tools").at(0).at("function").at("parameters").at("type"), "object");
+        EXPECT_EQ(payload.at("tools").at(0).at("function").at("parameters").at("properties").at("text").at("type"), "string");
+
+        HttpClient::Response response;
+        response.status_code = 200;
+        response.body = nlohmann::json{{"model", "gpt-4o-mini"},
+                                       {"created", 1712345678},
+                                       {"choices",
+                                        {{{"index", 0},
+                                          {"finish_reason", "stop"},
+                                          {"message", {{"role", "assistant"}, {"content", "ok"}}}}}}}
+                            .dump();
+        return response;
+    };
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output, &services);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_EQ(output.str(), "ok\n");
+}
