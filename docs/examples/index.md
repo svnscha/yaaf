@@ -12,5 +12,5 @@ Yaaf is a Lua runtime for intelligent workflows. The native executable provides 
 - [Basic CLI](basic-cli.md): copyable `ask` and `chat` command examples.
 - [MCP HTTP Server](mcp-http-server.md): use a VS Code-shaped MCP config with an HTTP server.
 - [MCP Stdio Server With Variables](mcp-stdio-variables.md): use `${workspaceFolder}`, `envFile`, and inline `env` with the stdio fixture.
-- [MCP HTTP And SSE Fixtures](mcp-http-sse-fixtures.md): run the local test stack with httpbin, MCP HTTP/SSE fixtures, and mitmproxy.
+- [MCP HTTP And SSE Fixtures](mcp-http-sse-fixtures.md): point yaaf at local deterministic MCP HTTP and SSE fixtures without Docker or public-network dependencies.
 - [Lua MCP Bridge](lua-mcp-bridge.md): call the MCP bridge directly from Lua.

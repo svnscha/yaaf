@@ -17,6 +17,13 @@ function(configure_yaaf_test_target target_name)
       nlohmann_json::nlohmann_json
   )
 
+  if(WIN32)
+    target_link_libraries(${target_name}
+      PRIVATE
+        ws2_32
+    )
+  endif()
+
   # The runtime resolves bundled Lua modules relative to the executable directory.
   # Mirror the production `yaaf` POST_BUILD copy so tests find `require("yaaf")` and
   # the bundled `lua/cli/*` command modules next to their own test binary.

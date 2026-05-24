@@ -1,33 +1,21 @@
 # MCP HTTP And SSE Fixtures
 
-Start the local Docker test stack with `httpbin`, mitmproxy, and the HTTP/SSE MCP fixtures:
+These fixture configs point yaaf at local deterministic MCP servers. They match the HTTP and SSE scenarios covered by `libyaaf_tests` without requiring Docker, mitmproxy, or public-network services.
 
-```powershell
-docker compose -f docker-compose.test-stack.yml up
-```
-
-Put fixture URLs in `.env` for repeated local runs:
-
-```text
-YAAF_PROXY=http://127.0.0.1:18080
-YAAF_HTTPBIN_URL=http://127.0.0.1:18082
-YAAF_MCP_FILE=./configs/hello-http.mcp.json
-```
-
-Use the proxied URL when you want MCP HTTP requests to show up in mitmproxy:
+Use the HTTP fixture when you want a plain JSON-RPC-over-HTTP MCP server:
 
 ```json
 {
   "servers": {
     "hello": {
       "type": "http",
-      "url": "http://host.docker.internal:39231/mcp"
+      "url": "http://127.0.0.1:39231/mcp"
     }
   }
 }
 ```
 
-Use SSE-style response parsing:
+Use the SSE fixture when you want an SSE transport with the same `hello` tool surface:
 
 ```json
 {
@@ -39,3 +27,11 @@ Use SSE-style response parsing:
   }
 }
 ```
+
+Pass the config explicitly when you run yaaf:
+
+```powershell
+yaaf.exe ask --mcp .\configs\hello-http.mcp.json "Use the hello tool to greet Sven."
+```
+
+These fixture endpoints are intended for local examples and tests. For real MCP servers, keep using the same config shape with your actual server URL or stdio command.
