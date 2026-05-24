@@ -99,7 +99,7 @@ tool.register(weather_tool)
 The included ReAct agent is created through `agent.create("react", options)`. Passing `tools = { "weather" }` limits the agent to the custom weather tool.
 
 ```lua
-local prompt = table.concat(arg, " ")
+local prompt = table.concat(yaaf.args, " ")
 if prompt == "" then
     prompt = "Use the weather tool to tell me the weather in Berlin."
 end
@@ -180,7 +180,7 @@ end
 
 tool.register(weather_tool)
 
-local prompt = table.concat(arg, " ")
+local prompt = table.concat(yaaf.args, " ")
 if prompt == "" then
     prompt = "Use the weather tool to tell me the weather in Berlin."
 end
