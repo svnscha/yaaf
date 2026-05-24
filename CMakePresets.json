@@ -7,6 +7,22 @@
     },
     "configurePresets": [
         {
+            "name": "windows-x64",
+            "displayName": "Windows x64",
+            "description": "Windows x64 development configure path using the Visual Studio generator and the default vcpkg triplet.",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/windows-x64",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
             "name": "linux-musl-static",
             "displayName": "Linux musl static",
             "description": "Opt-in musl-oriented static Linux configure path using a repo-owned overlay triplet.",
@@ -24,6 +40,22 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Linux"
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-debug",
+            "displayName": "Windows Debug",
+            "description": "Build the Windows x64 development tree with the Debug configuration.",
+            "configurePreset": "windows-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Windows Release",
+            "description": "Build the Windows x64 development tree with the Release configuration.",
+            "configurePreset": "windows-x64",
+            "configuration": "Release"
         }
     ]
 }

@@ -55,11 +55,21 @@ cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsy
 cmake --build build
 ```
 
+On Windows, use the checked-in presets so Debug and Release builds share the same Visual Studio x64 configure tree:
+
+```powershell
+cmake --preset windows-x64
+cmake --build --preset windows-debug
+cmake --build --preset windows-release
+```
+
 Typical output paths are:
 
 ```text
 build/app/yaaf
 build/app/Debug/yaaf
+build/windows-x64/app/Debug/yaaf.exe
+build/windows-x64/app/Release/yaaf.exe
 ```
 
 On Linux, the normal contributor executable path is `build/app/yaaf`. The packaged Linux release artifact is `build/linux-musl-static/app/yaaf` and is built as a musl-based static executable. CI validates that artifact as statically linked and smoke-tests the packaged bundle on both Alpine and Debian.
