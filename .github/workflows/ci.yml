@@ -235,7 +235,7 @@ jobs:
 
     steps:
       - name: Download Linux bundle artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: yaaf-linux-musl-static-amd64
           path: runtime-smoke/yaaf-linux-musl-static-amd64
