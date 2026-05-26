@@ -323,7 +323,13 @@ HttpClient::Response run_post(std::string_view url, std::string_view body, std::
         options.model = default_model;
         options.http = http_options;
 
-        commands.push_back(LuaCommand{std::move(name), entry.path(), yaaf::script::read_command_metadata(options)});
+        commands.push_back(LuaCommand{
+            std::move(name),
+            entry.path(),
+            yaaf::script::read_command_metadata(options),
+            {},  // options
+            {}   // positionals
+        });
     }
 
     std::sort(commands.begin(), commands.end(),
@@ -569,6 +575,7 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
     return arguments;
 }
 
+[[maybe_unused]]
 std::vector<std::string> collect_script_arguments(const std::vector<std::string> &args, std::size_t offset)
 {
     if (offset < args.size() && args[offset] == "--")

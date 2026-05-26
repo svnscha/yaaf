@@ -178,7 +178,7 @@ TEST(CliTests, GlobalProxyOptionCanBeUsedWithGenericHttpRequestOverride)
         EXPECT_TRUE(request.headers.empty());
         EXPECT_FALSE(request.body.has_value());
         EXPECT_FALSE(request.timeout.has_value());
-        return HttpClient::Response{200, "text/plain", "ok"};
+        return HttpClient::Response{200, "text/plain", "ok", {}};
     };
 
     std::istringstream input;

@@ -709,6 +709,7 @@ int lua_providers(lua_State *state)
     }
 }
 
+[[maybe_unused]]
 void set_tool_function(lua_State *state, int module_index, const char *name, lua_CFunction function)
 {
     lua_pushvalue(state, lua_upvalueindex(1));

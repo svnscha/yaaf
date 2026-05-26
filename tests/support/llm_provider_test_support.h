@@ -98,7 +98,7 @@ class ScriptedProviderHttpFixture
 
     [[nodiscard]] static HttpClient::Response json_response(const nlohmann::json &payload)
     {
-        return HttpClient::Response{200, "application/json", payload.dump()};
+        return HttpClient::Response{200, "application/json", payload.dump(), {}};
     }
 
     static void emit_chunk(const HttpClient::ResponseChunkHandler *on_response_chunk, const std::string &chunk)
@@ -194,7 +194,7 @@ class ScriptedProviderHttpFixture
                        nlohmann::json{{"model", model}, {"created_at", "2026-05-24T00:00:02Z"},
                                       {"done", true}, {"done_reason", "stop"}, {"eval_count", 5}}
                            .dump() + "\n");
-            return HttpClient::Response{200, "application/json", ""};
+            return HttpClient::Response{200, "application/json", "", {}};
         }
 
         return json_response({{"model", model},
@@ -230,7 +230,7 @@ class ScriptedProviderHttpFixture
                                       {"done", true},
                                       {"done_reason", "stop"}}
                            .dump() + "\n");
-            return HttpClient::Response{200, "application/json", ""};
+            return HttpClient::Response{200, "application/json", "", {}};
         }
 
         if (has_tools(payload) && !last_tool_message_content(payload).has_value())
@@ -307,7 +307,7 @@ class ScriptedProviderHttpFixture
                                .dump() +
                            "\n\n");
             emit_chunk(on_response_chunk, "data: [DONE]\n\n");
-            return HttpClient::Response{200, "application/json", ""};
+            return HttpClient::Response{200, "application/json", "", {}};
         }
 
         if (has_tools(payload) && !last_tool_message_content(payload).has_value())

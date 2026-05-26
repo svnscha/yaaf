@@ -40,7 +40,7 @@ TEST(McpProtocolMockTests, NativeClientPaginatesSseListsAndMapsToolErrors)
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         if (method == "tools/list" && !request.at("params").contains("cursor"))
         {
@@ -70,7 +70,7 @@ TEST(McpProtocolMockTests, NativeClientPaginatesSseListsAndMapsToolErrors)
             payload["result"]["isError"] = true;
             return json_response(payload);
         }
-        return HttpClient::Response{500, "text/plain", "unexpected"};
+        return HttpClient::Response{500, "text/plain", "unexpected", {}};
     };
 
     yaaf::mcp::Client client{options};
@@ -130,7 +130,7 @@ TEST(McpProtocolMockTests, ReportsHttpTransportFailures)
         options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
-            return HttpClient::Response{503, "text/plain", "unavailable"};
+            return HttpClient::Response{503, "text/plain", "unavailable", {}};
         };
 
         yaaf::mcp::Client client{options};
@@ -143,7 +143,7 @@ TEST(McpProtocolMockTests, ReportsHttpTransportFailures)
         options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
-            return HttpClient::Response{200, "application/json", ""};
+            return HttpClient::Response{200, "application/json", "", {}};
         };
 
         yaaf::mcp::Client client{options};
@@ -166,7 +166,7 @@ TEST(McpProtocolMockTests, ReportsSseTransportFailuresAndParsesMultiLinePayloads
         options.config_path = workspace_mcp_config_path(workspace);
         options.schema_registry = registry;
         options.http_post = [](std::string_view, std::string_view, std::string_view, const yaaf::mcp::Headers &) {
-            return HttpClient::Response{200, "text/event-stream", "event: message\n\n"};
+            return HttpClient::Response{200, "text/event-stream", "event: message\n\n", {}};
         };
 
         yaaf::mcp::Client client{options};
@@ -192,13 +192,14 @@ TEST(McpProtocolMockTests, ReportsSseTransportFailuresAndParsesMultiLinePayloads
                                             ",\r\n"
                                             "data: \"result\":{\"protocolVersion\":\"2025-06-18\",\r\n"
                                             "data: \"capabilities\":{\"tools\":{}},\r\n"
-                                            "data: \"serverInfo\":{\"name\":\"docs\",\"version\":\"1\"}}}"};
+                                            "data: \"serverInfo\":{\"name\":\"docs\",\"version\":\"1\"}}}",
+                                        {}};
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{500, "text/plain", "notification failed"};
+            return HttpClient::Response{500, "text/plain", "notification failed", {}};
         }
-        return HttpClient::Response{500, "text/plain", "unexpected"};
+        return HttpClient::Response{500, "text/plain", "unexpected", {}};
     };
 
     yaaf::mcp::Client client{options};
@@ -238,7 +239,7 @@ TEST(McpProtocolMockTests, MapsProtocolErrorsAndStructuredToolResults)
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         if (method == "tools/list")
         {
@@ -320,7 +321,7 @@ TEST(McpProtocolMockTests, RejectsMethodsMissingFromNegotiatedSchema)
             payload["result"]["serverInfo"] = {{"name", "docs"}, {"version", "1"}};
             return json_response(payload);
         }
-        return HttpClient::Response{202, "", ""};
+        return HttpClient::Response{202, "", "", {}};
     };
 
     yaaf::mcp::Client client{options};
@@ -367,7 +368,7 @@ assert(result.metadata.arguments.query == "mcp")
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         if (method == "tools/list")
         {
@@ -450,7 +451,7 @@ print(result.content)
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         if (method == "tools/list")
         {
@@ -566,7 +567,7 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         if (method == "tools/list" && url_string.find("docs") != std::string::npos)
         {
@@ -579,9 +580,9 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
         }
         if (method == "tools/list" && url_string.find("broken") != std::string::npos)
         {
-            return HttpClient::Response{503, "text/plain", "broken"};
+            return HttpClient::Response{503, "text/plain", "broken", {}};
         }
-        return HttpClient::Response{500, "text/plain", "unexpected"};
+        return HttpClient::Response{500, "text/plain", "unexpected", {}};
     };
 
     std::istringstream input;
@@ -658,7 +659,7 @@ TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
         }
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
         nlohmann::json payload;
         payload["jsonrpc"] = "2.0";
@@ -769,7 +770,7 @@ TEST(McpHostProtocolTests, HostListsToolsFromExecutor)
     };
 
     auto host = create_test_host(tools);
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     const auto listed = host.list_tools();
 
@@ -797,7 +798,7 @@ TEST(McpHostProtocolTests, HostFiltersToolsByName)
             return filtered;
         });
 
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
     const auto listed = host.list_tools();
 
     ASSERT_EQ(listed.size(), 1U);
@@ -814,7 +815,7 @@ TEST(McpHostProtocolTests, HostCallsToolViaExecutor)
             return yaaf::mcp::ToolExecutorResult{"Success!", false};
         });
 
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     const auto result = host.call_tool("test_tool", {{"param", "value"}});
 
@@ -831,7 +832,7 @@ TEST(McpHostProtocolTests, HostMapsToolErrorToMcpResult)
             return yaaf::mcp::ToolExecutorResult{"Tool failed", true};
         });
 
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     const auto result = host.call_tool("broken_tool", {});
 
@@ -859,7 +860,7 @@ TEST(McpHostProtocolTests, HostListsPromptsFromExecutor)
     };
 
     auto host = create_test_host({}, prompts);
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     const auto listed = host.list_prompts();
 
@@ -887,7 +888,7 @@ TEST(McpHostProtocolTests, HostGetPromptViaExecutor)
             };
         });
 
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     const auto messages = host.get_prompt("test_prompt", {{"role", "user"}});
 
@@ -902,7 +903,7 @@ TEST(McpHostProtocolTests, HostGetPromptViaExecutor)
 TEST(McpHostProtocolTests, HostReturnsErrorForMissingPrompt)
 {
     auto host = create_test_host({}, {});
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     EXPECT_THROW((void)host.get_prompt("unknown_prompt", {}), std::runtime_error);
 }
@@ -910,7 +911,7 @@ TEST(McpHostProtocolTests, HostReturnsErrorForMissingPrompt)
 TEST(McpHostProtocolTests, StdioHostReadsJsonRpcRequest)
 {
     auto host = create_test_host();
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     std::istringstream input;
     std::ostringstream output;
@@ -932,7 +933,7 @@ TEST(McpHostProtocolTests, StdioHostReadsJsonRpcRequest)
 TEST(McpHostProtocolTests, StdioHostHandlesUnknownMethod)
 {
     auto host = create_test_host();
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 42, \"method\": \"unknown/method\", \"params\": {} }\n");
     std::ostringstream output;
@@ -948,7 +949,7 @@ TEST(McpHostProtocolTests, StdioHostHandlesUnknownMethod)
 TEST(McpHostProtocolTests, StdioHostHandlesMalformedJson)
 {
     auto host = create_test_host();
-    host.initialize({{"protocolVersion", "2025-06-18"}});
+    (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
     std::istringstream input("{ invalid json }\n");
     std::ostringstream output;

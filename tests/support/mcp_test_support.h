@@ -103,7 +103,7 @@ inline void write_mcp_config(const std::filesystem::path &workspace, const nlohm
 
 [[nodiscard]] inline HttpClient::Response json_response(const nlohmann::json &payload)
 {
-    return HttpClient::Response{200, "application/json", payload.dump()};
+    return HttpClient::Response{200, "application/json", payload.dump(), {}};
 }
 
 [[nodiscard]] inline HttpClient::Response sse_response(const nlohmann::json &payload, yaaf::mcp::Headers headers = {})
@@ -440,7 +440,7 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
         const auto method = request.at("method").get<std::string>();
         if (method == "notifications/initialized")
         {
-            return HttpClient::Response{202, "", ""};
+            return HttpClient::Response{202, "", "", {}};
         }
 
         nlohmann::json payload;
