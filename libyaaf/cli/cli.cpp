@@ -14,11 +14,11 @@ namespace
 inline const char *safe_getenv(const char *name) noexcept
 {
 #ifdef _WIN32
-    // MSVC deprecates getenv; suppress locally for the safe read
-    #pragma warning(push)
-    #pragma warning(disable : 4996)
+// MSVC deprecates getenv; suppress locally for the safe read
+#pragma warning(push)
+#pragma warning(disable : 4996)
     const char *result = std::getenv(name);
-    #pragma warning(pop)
+#pragma warning(pop)
     return result;
 #else
     return std::getenv(name);
