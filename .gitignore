@@ -10,7 +10,6 @@ CMakeUserPresets.json
 Testing/
 .cache/
 vcpkg_installed/
-vcpkg/
 .vs/
 .idea/
 .covdbg/
