@@ -1,6 +1,8 @@
 #include "script_mcp.h"
 #include "lua_module_utils.h"
 
+#include <set>
+
 extern "C"
 {
 #include <lauxlib.h>
@@ -544,8 +546,205 @@ int lua_host_stdio(lua_State *state)
             return prompt_executor_callback(state, runtime, prompt_name, arguments);
         };
 
-        // Create Host instance
-        auto host = std::make_shared<yaaf::mcp::Host>(schema_backend, tool_executor, prompt_executor);
+        // Create tool lister callback that retrieves available tools from Lua
+        auto tool_lister = [state, tool_filter]() -> std::vector<yaaf::mcp::ToolInfo> {
+            std::vector<yaaf::mcp::ToolInfo> result;
+            const int stack_top = lua_gettop(state);
+
+            try
+            {
+                // Require tool module
+                require_module(state, "tool");
+                const int tool_module_index = absolute_index(state, -1);
+
+                // Call tool.names() to get all available tool names
+                lua_getfield(state, tool_module_index, "names");
+                if (!lua_isfunction(state, -1))
+                {
+                    lua_settop(state, stack_top);
+                    return result;
+                }
+
+                if (lua_pcall(state, 0, 1, 0) != 0)
+                {
+                    lua_settop(state, stack_top);
+                    return result;
+                }
+
+                if (!lua_istable(state, -1))
+                {
+                    lua_settop(state, stack_top);
+                    return result;
+                }
+
+                // Extract tool names from the returned array
+                const int names_index = absolute_index(state, -1);
+                const auto names_count = static_cast<std::size_t>(lua_rawlen(state, names_index));
+                std::vector<std::string> all_tool_names;
+                all_tool_names.reserve(names_count);
+
+                for (std::size_t idx = 1; idx <= names_count; ++idx)
+                {
+                    lua_rawgeti(state, names_index, static_cast<int>(idx));
+                    if (lua_isstring(state, -1))
+                    {
+                        all_tool_names.emplace_back(lua_tostring(state, -1));
+                    }
+                    lua_pop(state, 1);
+                }
+                lua_pop(state, 2);
+
+                // Filter tool names if filter list is provided
+                std::vector<std::string> filtered_names;
+                if (!tool_filter.empty())
+                {
+                    std::set<std::string> filter_set(tool_filter.begin(), tool_filter.end());
+                    for (const auto &name : all_tool_names)
+                    {
+                        if (filter_set.count(name) > 0)
+                        {
+                            filtered_names.push_back(name);
+                        }
+                    }
+                }
+                else
+                {
+                    filtered_names = all_tool_names;
+                }
+
+                // For each filtered tool, get its spec
+                if (!filtered_names.empty())
+                {
+                    require_module(state, "tool");
+                    const int tool_module_idx = absolute_index(state, -1);
+
+                    lua_getfield(state, tool_module_idx, "specs");
+                    if (lua_isfunction(state, -1))
+                    {
+                        // Build array of tool names to pass to specs()
+                        lua_newtable(state);
+                        for (std::size_t idx = 0; idx < filtered_names.size(); ++idx)
+                        {
+                            lua_pushlstring(state, filtered_names[idx].c_str(), filtered_names[idx].size());
+                            lua_rawseti(state, -2, static_cast<int>(idx + 1));
+                        }
+
+                        if (lua_pcall(state, 1, 1, 0) == 0 && lua_istable(state, -1))
+                        {
+                            const int specs_index = absolute_index(state, -1);
+                            const auto specs_count = static_cast<std::size_t>(lua_rawlen(state, specs_index));
+
+                            for (std::size_t idx = 1; idx <= specs_count; ++idx)
+                            {
+                                lua_rawgeti(state, specs_index, static_cast<int>(idx));
+                                if (lua_istable(state, -1))
+                                {
+                                    const int spec_idx = absolute_index(state, -1);
+
+                                    // Extract tool info
+                                    yaaf::mcp::ToolInfo tool_info;
+
+                                    // Get function table
+                                    lua_getfield(state, spec_idx, "function");
+                                    if (lua_istable(state, -1))
+                                    {
+                                        const int func_idx = absolute_index(state, -1);
+
+                                        // Get name
+                                        lua_getfield(state, func_idx, "name");
+                                        if (lua_isstring(state, -1))
+                                        {
+                                            tool_info.name = lua_tostring(state, -1);
+                                        }
+                                        lua_pop(state, 1);
+
+                                        // Get description
+                                        lua_getfield(state, func_idx, "description");
+                                        if (lua_isstring(state, -1))
+                                        {
+                                            tool_info.description = lua_tostring(state, -1);
+                                        }
+                                        lua_pop(state, 1);
+
+                                        // Get parameters as inputSchema
+                                        lua_getfield(state, func_idx, "parameters");
+                                        if (!lua_isnil(state, -1))
+                                        {
+                                            tool_info.input_schema = lua_to_json(state, -1);
+                                        }
+                                        else
+                                        {
+                                            tool_info.input_schema = nlohmann::json::object();
+                                        }
+                                        lua_pop(state, 1);
+                                    }
+                                    lua_pop(state, 1);
+
+                                    if (!tool_info.name.empty())
+                                    {
+                                        result.push_back(tool_info);
+                                    }
+                                }
+                                lua_pop(state, 1);
+                            }
+                        }
+                        lua_pop(state, 1);
+                    }
+                    else
+                    {
+                        lua_pop(state, 1);
+                    }
+                    lua_pop(state, 1);
+                }
+
+                lua_settop(state, stack_top);
+                return result;
+            }
+            catch (const std::exception &)
+            {
+                lua_settop(state, stack_top);
+                return result;
+            }
+        };
+
+        // Create prompt lister callback that retrieves hosted prompts
+        auto prompt_lister = [&runtime, prompt_filter]() -> std::vector<yaaf::mcp::PromptDescriptor> {
+            std::vector<yaaf::mcp::PromptDescriptor> result;
+
+            // Filter prompts if filter list is provided
+            if (!prompt_filter.empty())
+            {
+                std::set<std::string> filter_set(prompt_filter.begin(), prompt_filter.end());
+                for (const auto &pair : runtime.hosted_prompts)
+                {
+                    if (filter_set.count(pair.first) > 0)
+                    {
+                        yaaf::mcp::PromptDescriptor descriptor;
+                        descriptor.name = pair.first;
+                        descriptor.description = pair.second.description;
+                        descriptor.arguments = pair.second.arguments;
+                        result.push_back(descriptor);
+                    }
+                }
+            }
+            else
+            {
+                for (const auto &pair : runtime.hosted_prompts)
+                {
+                    yaaf::mcp::PromptDescriptor descriptor;
+                    descriptor.name = pair.first;
+                    descriptor.description = pair.second.description;
+                    descriptor.arguments = pair.second.arguments;
+                    result.push_back(descriptor);
+                }
+            }
+
+            return result;
+        };
+
+        // Create Host instance with lister callbacks
+        auto host = std::make_shared<yaaf::mcp::Host>(schema_backend, tool_executor, prompt_executor,
+                                                      tool_lister, prompt_lister);
 
         // Create StdioHost wrapper
         auto stdio_host = std::make_shared<yaaf::mcp::StdioHost>(*host, std::cin, std::cout);
