@@ -3,6 +3,7 @@
 #include "../http/http_client.h"
 #include "../llm/llm.h"
 #include "../mcp/mcp_client.h"
+#include "../mcp/mcp_schema.h"
 
 namespace yaaf::cli
 {
@@ -16,6 +17,7 @@ struct Services
         http_post;
     yaaf::mcp::HttpPost mcp_http_post;
     yaaf::mcp::StdioProcessFactory mcp_stdio_process_factory;
+    std::shared_ptr<const yaaf::mcp::schema::Registry> mcp_schema_registry;
     std::function<yaaf::llm::GenerateResponse(const yaaf::llm::GenerateRequest &request,
                                               const yaaf::llm::StreamCallback *on_stream_event)>
         generate;

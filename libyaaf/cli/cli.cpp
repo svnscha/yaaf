@@ -612,7 +612,10 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
 
     if (services == nullptr)
     {
-        return yaaf::script::run_file(runtime_options);
+        // Create default services with the MCP schema registry for host_stdio() support
+        yaaf::script::Services default_services;
+        default_services.mcp_schema_registry = yaaf::mcp::schema::default_registry();
+        return yaaf::script::run_file(runtime_options, &default_services);
     }
 
     yaaf::script::Services script_services;
@@ -668,6 +671,10 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
     {
         script_services.mcp_stdio_process_factory = services->mcp_stdio_process_factory;
     }
+    
+    // Always set MCP schema registry for host_stdio() support
+    script_services.mcp_schema_registry =
+        services->mcp_schema_registry ? services->mcp_schema_registry : yaaf::mcp::schema::default_registry();
 
     return yaaf::script::run_file(runtime_options, &script_services);
 }
