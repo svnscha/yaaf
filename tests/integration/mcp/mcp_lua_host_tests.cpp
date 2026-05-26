@@ -19,31 +19,40 @@ namespace
     const std::vector<std::string> configs = {"Debug", "Release", "RelWithDebInfo", "MinSizeRel"};
     const std::vector<std::string> platforms = {"osx-arm64", "windows-x64", "linux-musl-static"};
 
+    std::vector<std::filesystem::path> searched_paths;
+
     for (const auto &platform : platforms)
     {
         for (const auto &config : configs)
         {
             const auto candidate = root / "build" / platform / "app" / config / "yaaf";
+            searched_paths.push_back(candidate);
             if (std::filesystem::exists(candidate))
             {
                 return candidate;
             }
         }
+
+        // Single-config builds place executables directly under build/<platform>/app/.
+        const auto single_config_candidate = root / "build" / platform / "app" / "yaaf";
+        searched_paths.push_back(single_config_candidate);
+        if (std::filesystem::exists(single_config_candidate))
+        {
+            return single_config_candidate;
+        }
     }
 
     // Fallback to single-config paths
     const auto fallback = root / "build" / "app" / "yaaf";
+    searched_paths.push_back(fallback);
     if (std::filesystem::exists(fallback))
     {
         return fallback;
     }
 
     // If still not found, throw an error with helpful message
-    throw std::runtime_error(
-        fmt::format("Could not find yaaf executable in build directory. Searched: {}, {}, {}, etc.",
-                    (root / "build" / "osx-arm64" / "app" / "Debug" / "yaaf").string(),
-                    (root / "build" / "windows-x64" / "app" / "Debug" / "yaaf").string(),
-                    (root / "build" / "app" / "yaaf").string()));
+    throw std::runtime_error(fmt::format("Could not find yaaf executable in build directory. Last checked: {}",
+                                         searched_paths.empty() ? "<none>" : searched_paths.back().string()));
 }
 
 /// Manages a subprocess running a Lua MCP host script.
