@@ -17,7 +17,11 @@ if [[ ! -f "${repo_root}/.gitmodules" ]]; then
   exit 1
 fi
 
-git -C "${repo_root}" submodule update --init --recursive --depth 1 vcpkg
+if [[ ! -e "${vcpkg_dir}/.git" ]]; then
+  printf 'Missing initialized vcpkg submodule at %s\n' "${vcpkg_dir}" >&2
+  printf 'Run git submodule update --init --recursive before bootstrapping vcpkg.\n' >&2
+  exit 1
+fi
 
 if [[ ! -x "${vcpkg_dir}/bootstrap-vcpkg.sh" ]]; then
   printf 'Missing vcpkg bootstrap script at %s\n' "${vcpkg_dir}/bootstrap-vcpkg.sh" >&2

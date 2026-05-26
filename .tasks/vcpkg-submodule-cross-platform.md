@@ -105,6 +105,7 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
 - Verified a fresh clone path by cloning the repository with `--recurse-submodules`, bootstrapping `./vcpkg`, configuring, and building `yaaf` successfully.
 - Hosted CI execution and Linux musl packaging were not runnable from this macOS environment because no local Linux container runtime was available.
 - Follow-up CI fix: the Linux musl job needs a container image that already has `git` so `actions/checkout` can honor `submodules: recursive` before the dependency-install step runs.
+- Follow-up CI fix: `.devcontainer/setup-vcpkg.sh` now assumes the submodule is already initialized and only validates plus bootstraps it, so CI does not need to re-fetch submodules inside the musl container.
 
 ## Phase 4 - Documentation And Validation
 
