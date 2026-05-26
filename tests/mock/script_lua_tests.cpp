@@ -646,7 +646,6 @@ TEST(ScriptLuaTests, RunsLuaFileWithRequiredHttpModule)
     EXPECT_EQ(output.str(), "200\njson\n201\nchunk-stream\nok\n");
 }
 
-
 TEST(ScriptLuaTests, HttpModuleExposesRequestBasedMethods)
 {
     const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_http_request_test.lua";
@@ -840,21 +839,23 @@ TEST(ScriptLuaRuntimePathTests, ExplicitRuntimeRootOverridesExecutableDirectory)
     EXPECT_EQ(output.str(), "override\n");
 }
 
-
 TEST(ScriptLuaTests, BuiltInOpenAiProviderMapsChatStreamingAndEmbeddings)
 {
     const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_openai_provider_test.lua";
     {
         std::ofstream script{script_path};
         script << "local llm = require('llm')\n";
-        script << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini', api_key = 'sk-test' })\n";
+        script << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini', "
+                  "api_key = 'sk-test' })\n";
         script << "local seen = {}\n";
         script << "local response = client.chat({\n";
         script << "  stream = true,\n";
         script << "  format = { type = 'object', properties = { answer = { type = 'string' } } },\n";
-        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', arguments = { type = 'object' } } }},\n";
+        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', "
+                  "arguments = { type = 'object' } } }},\n";
         script << "  messages = {{ role = 'user', content = 'hello' }},\n";
-        script << "  on_stream = function(event) if event.message and event.message.content and event.message.content ~= '' then table.insert(seen, event.message.content) end end,\n";
+        script << "  on_stream = function(event) if event.message and event.message.content and event.message.content "
+                  "~= '' then table.insert(seen, event.message.content) end end,\n";
         script << "})\n";
         script << "local embedding = client.embed({ input = 'hello', dimensions = 8 })\n";
         script << "print(table.concat(seen, ''))\n";
@@ -896,9 +897,17 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderMapsChatStreamingAndEmbeddings)
             EXPECT_NE(on_response_chunk, nullptr);
             if (on_response_chunk != nullptr)
             {
-                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"}}]}\n\n");
-                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"content\":\" world\"}}]}\n\n");
-                (*on_response_chunk)("data: {\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{\"name\":\"echo\",\"arguments\":\"{\\\"text\\\":\\\"hello\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":5}}\n\n");
+                (*on_response_chunk)("data: "
+                                     "{\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,"
+                                     "\"delta\":{\"role\":\"assistant\",\"content\":\"Hello\"}}]}\n\n");
+                (*on_response_chunk)("data: "
+                                     "{\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,"
+                                     "\"delta\":{\"content\":\" world\"}}]}\n\n");
+                (*on_response_chunk)("data: "
+                                     "{\"model\":\"gpt-4o-mini\",\"created\":1712345678,\"choices\":[{\"index\":0,"
+                                     "\"delta\":{\"tool_calls\":[{\"index\":0,\"type\":\"function\",\"function\":{"
+                                     "\"name\":\"echo\",\"arguments\":\"{\\\"text\\\":\\\"hello\\\"}\"}}]},\"finish_"
+                                     "reason\":\"tool_calls\"}],\"usage\":{\"prompt_tokens\":5}}\n\n");
                 (*on_response_chunk)("data: [DONE]\n\n");
             }
 
@@ -914,9 +923,9 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderMapsChatStreamingAndEmbeddings)
 
         HttpClient::Response response;
         response.status_code = 200;
-        response.body = nlohmann::json{{"model", "text-embedding-3-small"},
-                                       {"data", {{{"index", 0}, {"embedding", {0.25, 0.5}}}}}}
-                            .dump();
+        response.body =
+            nlohmann::json{{"model", "text-embedding-3-small"}, {"data", {{{"index", 0}, {"embedding", {0.25, 0.5}}}}}}
+                .dump();
         return response;
     };
 
@@ -936,11 +945,13 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderMapsChatStreamingAndEmbeddings)
 
 TEST(ScriptLuaTests, BuiltInOpenAiProviderKeepsExplicitLocalhostEndpoint)
 {
-    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_openai_localhost_endpoint_test.lua";
+    const auto script_path =
+        std::filesystem::temp_directory_path() / "assistant_lua_openai_localhost_endpoint_test.lua";
     {
         std::ofstream script{script_path};
         script << "local llm = require('llm')\n";
-        script << "local client = llm.create('openai', { endpoint = 'http://localhost:11434', model = 'gpt-4o-mini' })\n";
+        script
+            << "local client = llm.create('openai', { endpoint = 'http://localhost:11434', model = 'gpt-4o-mini' })\n";
         script << "local response = client.chat({ messages = {{ role = 'user', content = 'hello' }} })\n";
         script << "print(response.message.content)\n";
     }
@@ -996,9 +1007,11 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderAcceptsToolParametersSchema)
     {
         std::ofstream script{script_path};
         script << "local llm = require('llm')\n";
-        script << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini' })\n";
+        script
+            << "local client = llm.create('openai', { endpoint = 'http://openai.test/v1', model = 'gpt-4o-mini' })\n";
         script << "local response = client.chat({\n";
-        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', parameters = { type = 'object', properties = { text = { type = 'string' } } } } }},\n";
+        script << "  tools = {{ type = 'function', ['function'] = { name = 'echo', description = 'Echo text', "
+                  "parameters = { type = 'object', properties = { text = { type = 'string' } } } } }},\n";
         script << "  messages = {{ role = 'user', content = 'hello' }},\n";
         script << "})\n";
         script << "print(response.message.content)\n";
@@ -1025,17 +1038,18 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderAcceptsToolParametersSchema)
             return HttpClient::Response{};
         }
         EXPECT_EQ(payload.at("tools").at(0).at("function").at("parameters").at("type"), "object");
-        EXPECT_EQ(payload.at("tools").at(0).at("function").at("parameters").at("properties").at("text").at("type"), "string");
+        EXPECT_EQ(payload.at("tools").at(0).at("function").at("parameters").at("properties").at("text").at("type"),
+                  "string");
 
         HttpClient::Response response;
         response.status_code = 200;
-        response.body = nlohmann::json{{"model", "gpt-4o-mini"},
-                                       {"created", 1712345678},
-                                       {"choices",
-                                        {{{"index", 0},
-                                          {"finish_reason", "stop"},
-                                          {"message", {{"role", "assistant"}, {"content", "ok"}}}}}}}
-                            .dump();
+        response.body =
+            nlohmann::json{
+                {"model", "gpt-4o-mini"},
+                {"created", 1712345678},
+                {"choices",
+                 {{{"index", 0}, {"finish_reason", "stop"}, {"message", {{"role", "assistant"}, {"content", "ok"}}}}}}}
+                .dump();
         return response;
     };
 
@@ -1050,4 +1064,172 @@ TEST(ScriptLuaTests, BuiltInOpenAiProviderAcceptsToolParametersSchema)
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
     EXPECT_EQ(output.str(), "ok\n");
+}
+
+// ==================== Phase 3: Lua Process Module Tests ====================
+
+TEST(ScriptLuaTests, ProcessStartHappyPathWithEcho)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_process_start_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local process = require('process')\n";
+        script << "local handle = process.start({ command = 'echo', args = {'hello'} })\n";
+        script << "if handle == nil then\n";
+        script << "  error('process.start() returned nil')\n";
+        script << "end\n";
+        script << "print('handle is not nil')\n";
+        script << "local is_alive = handle:is_alive()\n";
+        script << "print('is_alive: ' .. tostring(is_alive))\n";
+        script << "local line, err = handle:read(5000)\n";
+        script << "if line then\n";
+        script << "  print('output: ' .. line)\n";
+        script << "else\n";
+        script << "  print('read error: ' .. tostring(err))\n";
+        script << "end\n";
+        script << "handle:shutdown(1000)\n";
+        script << "print('shutdown complete')\n";
+    }
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_TRUE(output.str().find("handle is not nil") != std::string::npos);
+    EXPECT_TRUE(output.str().find("is_alive: true") != std::string::npos);
+    EXPECT_TRUE(output.str().find("output: hello") != std::string::npos);
+    EXPECT_TRUE(output.str().find("shutdown complete") != std::string::npos);
+}
+
+TEST(ScriptLuaTests, ProcessStartWithMultipleArguments)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_process_args_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local process = require('process')\n";
+        script << "local handle = process.start({\n";
+        script << "  command = 'echo',\n";
+        script << "  args = {'hello', 'from', 'lua'}\n";
+        script << "})\n";
+        script << "local line, err = handle:read(5000)\n";
+        script << "if line then\n";
+        script << "  print(line)\n";
+        script << "else\n";
+        script << "  print('error: ' .. tostring(err))\n";
+        script << "end\n";
+        script << "handle:shutdown(1000)\n";
+    }
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_TRUE(output.str().find("hello") != std::string::npos);
+    EXPECT_TRUE(output.str().find("from") != std::string::npos);
+    EXPECT_TRUE(output.str().find("lua") != std::string::npos);
+}
+
+TEST(ScriptLuaTests, ProcessStartWithWorkingDirectory)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_process_cwd_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local process = require('process')\n";
+        script << "local handle = process.start({\n";
+        script << "  command = 'pwd',\n";
+        script << "  cwd = '/tmp'\n";
+        script << "})\n";
+        script << "local line, err = handle:read(5000)\n";
+        script << "if line then\n";
+        script << "  if string.find(line, 'tmp') then\n";
+        script << "    print('correct directory')\n";
+        script << "  else\n";
+        script << "    print('wrong directory: ' .. line)\n";
+        script << "  end\n";
+        script << "else\n";
+        script << "  print('error: ' .. tostring(err))\n";
+        script << "end\n";
+        script << "handle:shutdown(1000)\n";
+    }
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_TRUE(output.str().find("correct directory") != std::string::npos);
+}
+
+TEST(ScriptLuaTests, ProcessStartErrorHandlingValidation)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_process_validation_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local process = require('process')\n";
+        script << "local ok, err = pcall(function()\n";
+        script << "  process.start({ })\n";
+        script << "end)\n";
+        script << "if not ok then\n";
+        script << "  print('validation works')\n";
+        script << "end\n";
+    }
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(output.str().find("validation works") != std::string::npos);
+}
+
+TEST(ScriptLuaTests, YaafPlatformModuleExists)
+{
+    const auto script_path = std::filesystem::temp_directory_path() / "assistant_lua_platform_test.lua";
+    {
+        std::ofstream script{script_path};
+        script << "local yaaf = require('yaaf')\n";
+        script << "local platform = yaaf.platform\n";
+        script << "if platform == nil then\n";
+        script << "  error('yaaf.platform is nil')\n";
+        script << "end\n";
+        script << "print('platform: ' .. platform)\n";
+        script << "if platform == 'windows' or platform == 'linux' or platform == 'osx' then\n";
+        script << "  print('valid platform')\n";
+        script << "else\n";
+        script << "  print('invalid platform: ' .. platform)\n";
+        script << "end\n";
+    }
+
+    std::istringstream input;
+    std::ostringstream output;
+    std::ostringstream error_output;
+
+    const auto exit_code = yaaf::cli::run({"run", script_path.string()}, input, output, error_output);
+
+    std::filesystem::remove(script_path);
+
+    EXPECT_EQ(exit_code, EXIT_SUCCESS);
+    EXPECT_TRUE(error_output.str().empty());
+    EXPECT_TRUE(output.str().find("valid platform") != std::string::npos);
 }

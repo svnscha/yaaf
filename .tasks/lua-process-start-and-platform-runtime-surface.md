@@ -63,7 +63,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | --- | --- | --- |
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
 | Implementation | [x] | Shared process layer + platform_name + Lua module + MCP refactor all complete |
-| Validation | [ ] | Build and focused tests for Lua + MCP stdio |
+| Validation | [x] | Build and focused tests for Lua + MCP stdio passing (175/175 tests) |
 | Documentation | [ ] | Module docs + yaaf runtime docs updated |
 
 ## Phase 1 - Discovery
@@ -103,19 +103,19 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 
 ## Phase 3 - Validation
 
-- [ ] Add/extend tests for Lua process module
-  - [ ] Add script-driven tests in existing Lua mock test suite for happy-path start/read/write/wait
-  - [ ] Add negative test for invalid command or invalid working directory
-  - [ ] Add assertion that `yaaf.platform` exists and is one of expected values
+- [x] Add/extend tests for Lua process module
+  - [x] Add script-driven tests in existing Lua mock test suite for happy-path start/read/write/wait
+  - [x] Add negative test for invalid command or invalid working directory
+  - [x] Add assertion that `yaaf.platform` exists and is one of expected values
 
-- [ ] Add/extend MCP stdio regression tests
-  - [ ] Verify env + args behavior remains intact
-  - [ ] Add coverage for working-directory-sensitive child process startup in MCP stdio path (where feasible with existing scripted fixtures)
+- [x] Add/extend MCP stdio regression tests
+  - [x] Verify env + args behavior remains intact
+  - [x] Add coverage for working-directory-sensitive child process startup in MCP stdio path (where feasible with existing scripted fixtures)
 
-- [ ] Build and run focused targets
-  - [ ] Build relevant test targets
-  - [ ] Run targeted integration + mock test cases
-  - [ ] Triage and fix regressions from process refactor
+- [x] Build and run focused targets
+  - [x] Build relevant test targets
+  - [x] Run targeted integration + mock test cases
+  - [x] Triage and fix regressions from process refactor
 
 ## Phase 4 - Documentation
 
