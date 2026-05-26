@@ -202,7 +202,7 @@ jobs:
           mkdir -p "$package_dir"
           cp 'build/linux-musl-static/app/yaaf' "$package_dir/yaaf"
           cp -R 'build/linux-musl-static/app/lua' "$package_dir/lua"
-          cp -R 'build/linux-musl-static/app/examples' "$package_dir/examples'
+          cp -R 'build/linux-musl-static/app/examples' "$package_dir/examples"
 
       - name: Verify Linux musl binary is statically linked
         shell: bash
