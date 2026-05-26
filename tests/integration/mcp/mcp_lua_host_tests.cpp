@@ -2,15 +2,50 @@
 
 #include "../../../libyaaf/cli/cli.h"
 
-#include <unistd.h>
-#include <sys/wait.h>
-#include <fcntl.h>
 #include <cerrno>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 using namespace yaaf::tests::mcp;
 
 namespace
 {
+/// Find the yaaf executable in the build directory.
+/// Searches in platform-specific Multi-Config build directories first, then a fallback path.
+[[nodiscard]] std::filesystem::path find_yaaf_executable(const std::filesystem::path &root)
+{
+    // With Ninja Multi-Config, try build/<platform>/<target>/<config>/yaaf first
+    const std::vector<std::string> configs = {"Debug", "Release", "RelWithDebInfo", "MinSizeRel"};
+    const std::vector<std::string> platforms = {"osx-arm64", "windows-x64", "linux-musl-static"};
+
+    for (const auto &platform : platforms)
+    {
+        for (const auto &config : configs)
+        {
+            const auto candidate = root / "build" / platform / "app" / config / "yaaf";
+            if (std::filesystem::exists(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    // Fallback to single-config paths
+    const auto fallback = root / "build" / "app" / "yaaf";
+    if (std::filesystem::exists(fallback))
+    {
+        return fallback;
+    }
+
+    // If still not found, throw an error with helpful message
+    throw std::runtime_error(
+        fmt::format("Could not find yaaf executable in build directory. Searched: {}, {}, {}, etc.",
+                    (root / "build" / "osx-arm64" / "app" / "Debug" / "yaaf").string(),
+                    (root / "build" / "windows-x64" / "app" / "Debug" / "yaaf").string(),
+                    (root / "build" / "app" / "yaaf").string()));
+}
+
 /// Manages a subprocess running a Lua MCP host script.
 /// Provides methods to send and receive JSON-RPC messages over pipes.
 class LuaHostSubprocess
@@ -177,8 +212,7 @@ class LuaHostSubprocess
 };
 
 /// Write a Lua host script that registers tools and prompts.
-[[nodiscard]] std::filesystem::path write_lua_host_script(const std::filesystem::path &workspace,
-                                                           std::string_view body)
+[[nodiscard]] std::filesystem::path write_lua_host_script(const std::filesystem::path &workspace, std::string_view body)
 {
     return write_lua_script(workspace, body);
 }
@@ -189,7 +223,7 @@ TEST(McpLuaHostIntegrationTests, LuaScriptHostsMcpStdioServer)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("mcp_lua_host_stdio_test");
-    const auto yaaf_exe = root / "build" / "app" / "yaaf";
+    const auto yaaf_exe = find_yaaf_executable(root);
     const CurrentPathGuard current_path{root};
 
     // Create a Lua script that acts as an MCP server
@@ -376,7 +410,7 @@ TEST(McpLuaHostIntegrationTests, RemoteClientCallsLuaHostedServer)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("mcp_lua_host_remote_client_test");
-    const auto yaaf_exe = root / "build" / "app" / "yaaf";
+    const auto yaaf_exe = find_yaaf_executable(root);
     const CurrentPathGuard current_path{root};
 
     // Create a Lua script that hosts MCP tools
@@ -452,8 +486,7 @@ mcp.host_stdio({
 
     // Verify tools/list works
     nlohmann::json list_tools = {
-        {"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}, {"params", nlohmann::json::object()}
-    };
+        {"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}, {"params", nlohmann::json::object()}};
 
     host->send_message(list_tools);
     const auto tools_response = host->read_message();
@@ -465,8 +498,7 @@ mcp.host_stdio({
 
     // Verify prompts/list works
     nlohmann::json list_prompts = {
-        {"jsonrpc", "2.0"}, {"id", 3}, {"method", "prompts/list"}, {"params", nlohmann::json::object()}
-    };
+        {"jsonrpc", "2.0"}, {"id", 3}, {"method", "prompts/list"}, {"params", nlohmann::json::object()}};
 
     host->send_message(list_prompts);
     const auto prompts_response = host->read_message();
@@ -486,7 +518,7 @@ TEST(McpLuaHostIntegrationTests, LuaServerHandlesUnknownMethods)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("mcp_lua_host_unknown_method_test");
-    const auto yaaf_exe = root / "build" / "app" / "yaaf";
+    const auto yaaf_exe = find_yaaf_executable(root);
     const CurrentPathGuard current_path{root};
 
     const auto script_path = write_lua_host_script(workspace, R"lua(
@@ -535,7 +567,7 @@ TEST(McpLuaHostIntegrationTests, LuaServerFiltersToolsAndPrompts)
 {
     const auto root = repository_root();
     const auto workspace = make_workspace("mcp_lua_host_filtering_test");
-    const auto yaaf_exe = root / "build" / "app" / "yaaf";
+    const auto yaaf_exe = find_yaaf_executable(root);
     const CurrentPathGuard current_path{root};
 
     const auto script_path = write_lua_host_script(workspace, R"lua(
@@ -614,18 +646,17 @@ mcp.host_stdio({
     auto host = LuaHostSubprocess::spawn(script_path, yaaf_exe);
 
     // Initialize
-    nlohmann::json init_request = {
-        {"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"},
-        {"params", {{"protocolVersion", "2024-11-05"}, {"clientInfo", {{"name", "test"}}}}}
-    };
+    nlohmann::json init_request = {{"jsonrpc", "2.0"},
+                                   {"id", 1},
+                                   {"method", "initialize"},
+                                   {"params", {{"protocolVersion", "2024-11-05"}, {"clientInfo", {{"name", "test"}}}}}};
 
     host->send_message(init_request);
     [[maybe_unused]] const auto init_response_filter = host->read_message();
 
     // List tools - should only see red_tool and blue_tool
     nlohmann::json list_tools = {
-        {"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}, {"params", nlohmann::json::object()}
-    };
+        {"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}, {"params", nlohmann::json::object()}};
 
     host->send_message(list_tools);
     const auto tools_response = host->read_message();
@@ -643,8 +674,7 @@ mcp.host_stdio({
 
     // List prompts - should only see prompt_alpha and prompt_beta
     nlohmann::json list_prompts = {
-        {"jsonrpc", "2.0"}, {"id", 3}, {"method", "prompts/list"}, {"params", nlohmann::json::object()}
-    };
+        {"jsonrpc", "2.0"}, {"id", 3}, {"method", "prompts/list"}, {"params", nlohmann::json::object()}};
 
     host->send_message(list_prompts);
     const auto prompts_response = host->read_message();
