@@ -75,7 +75,7 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
 | Discovery | [x] | Host API shape and tool exposure model confirmed |
 | Implementation | [x] | Phase 2.1 native host loop done; Phase 2.2 Lua bridge done; Phase 2.3 wiring done |
 | Validation | [x] | Mock and integration coverage passed |
-| Documentation | [-] | Lua and MCP docs plus example in progress |
+| Documentation | [x] | Lua and MCP docs plus example completed |
 
 ## Phase 1 - Discovery
 
@@ -116,7 +116,7 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
 
 ## Phase 4 - Documentation
 
-- [ ] Document Lua-backed MCP server authoring and hosting.
-  - [ ] Update `libyaaf/mcp/README.md` to describe both consuming and hosting support plus the new support matrix.
-  - [ ] Update `docs/modules/mcp.md` and `docs/lua.md` with the hosted API and `yaaf run` workflow.
-  - [ ] Add or update an example Lua script that exposes MCP tools and prompts over stdio.
+- [x] Document Lua-backed MCP server authoring and hosting.
+  - [x] Update `libyaaf/mcp/README.md` to describe both consuming and hosting support plus the new support matrix.
+  - [x] Update `docs/modules/mcp.md` and `docs/lua.md` with the hosted API and `yaaf run` workflow.
+  - [x] Add or update an example Lua script that exposes MCP tools and prompts over stdio.
