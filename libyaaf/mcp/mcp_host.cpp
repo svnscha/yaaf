@@ -14,9 +14,10 @@ namespace
 } // namespace
 
 Host::Host(std::shared_ptr<const schema::Backend> schema_backend, ToolExecutor tool_executor,
-           PromptExecutor prompt_executor)
+           PromptExecutor prompt_executor, ToolLister tool_lister, PromptLister prompt_lister)
     : schema_backend_(std::move(schema_backend)), tool_executor_(std::move(tool_executor)),
-      prompt_executor_(std::move(prompt_executor))
+      prompt_executor_(std::move(prompt_executor)), tool_lister_(std::move(tool_lister)),
+      prompt_lister_(std::move(prompt_lister))
 {
     if (!schema_backend_)
     {
@@ -61,16 +62,32 @@ std::vector<nlohmann::json> Host::list_tools()
         throw std::runtime_error("tools/list method not supported in protocol version");
     }
 
-    // For now, return empty list. In Phase 2.2, this will call the tool executor callback.
-    // Tools would be fetched from a Lua registry via the executor callback.
-    if (!tool_executor_)
+    std::vector<nlohmann::json> result;
+
+    if (!tool_lister_)
     {
-        return {};
+        return result;
     }
 
-    // Call executor callback to get tool list
-    // This is a placeholder for Phase 2.2 integration
-    return {};
+    try
+    {
+        const auto tools = tool_lister_();
+        for (const auto &tool : tools)
+        {
+            nlohmann::json tool_info = {{"name", tool.name}, {"description", tool.description}};
+            if (!tool.input_schema.is_null() && !tool.input_schema.empty())
+            {
+                tool_info["inputSchema"] = tool.input_schema;
+            }
+            result.push_back(tool_info);
+        }
+    }
+    catch (const std::exception &error)
+    {
+        throw std::runtime_error(fmt::format("failed to list tools: {}", error.what()));
+    }
+
+    return result;
 }
 
 nlohmann::json Host::call_tool(const std::string &name, const nlohmann::json &arguments)
@@ -85,11 +102,29 @@ nlohmann::json Host::call_tool(const std::string &name, const nlohmann::json &ar
         throw std::runtime_error(fmt::format("tool '{}' not found", name));
     }
 
-    // Call executor callback with tool name and arguments
-    const auto result = tool_executor_(name, arguments);
+    try
+    {
+        // Call executor callback with tool name and arguments
+        const auto result = tool_executor_(name, arguments);
 
-    // Return MCP tool result format
-    return {{"type", result.is_error ? "error" : "text"}, {"text", result.content}};
+        // Build MCP result with content array
+        nlohmann::json response = nlohmann::json::array();
+        response.push_back({{"type", "text"}, {"text", result.content}});
+
+        // Return in MCP ToolResult format
+        if (result.is_error)
+        {
+            return {{"type", "error"}, {"content", response}};
+        }
+        else
+        {
+            return {{"type", "text"}, {"content", response}};
+        }
+    }
+    catch (const std::exception &error)
+    {
+        throw std::runtime_error(fmt::format("tool execution failed: {}", error.what()));
+    }
 }
 
 std::vector<nlohmann::json> Host::list_prompts()
@@ -99,15 +134,41 @@ std::vector<nlohmann::json> Host::list_prompts()
         throw std::runtime_error("prompts/list method not supported in protocol version");
     }
 
-    // For now, return empty list. In Phase 2.2, this will call the prompt executor callback.
-    if (!prompt_executor_)
+    std::vector<nlohmann::json> result;
+
+    if (!prompt_lister_)
     {
-        return {};
+        return result;
     }
 
-    // Call executor callback to get prompt list
-    // This is a placeholder for Phase 2.2 integration
-    return {};
+    try
+    {
+        const auto prompts = prompt_lister_();
+        for (const auto &prompt : prompts)
+        {
+            nlohmann::json prompt_info = {{"name", prompt.name}, {"description", prompt.description}};
+
+            // Add arguments if present
+            if (!prompt.arguments.empty())
+            {
+                nlohmann::json args_array = nlohmann::json::array();
+                for (const auto &arg : prompt.arguments)
+                {
+                    args_array.push_back(
+                        {{"name", arg.name}, {"description", arg.description}, {"required", arg.required}});
+                }
+                prompt_info["arguments"] = args_array;
+            }
+
+            result.push_back(prompt_info);
+        }
+    }
+    catch (const std::exception &error)
+    {
+        throw std::runtime_error(fmt::format("failed to list prompts: {}", error.what()));
+    }
+
+    return result;
 }
 
 std::vector<nlohmann::json> Host::get_prompt(const std::string &name, const nlohmann::json &arguments)
@@ -122,16 +183,23 @@ std::vector<nlohmann::json> Host::get_prompt(const std::string &name, const nloh
         throw std::runtime_error(fmt::format("prompt '{}' not found", name));
     }
 
-    // Call executor callback with prompt name and arguments
-    const auto messages = prompt_executor_(name, arguments);
-
-    // Convert to MCP message format
-    std::vector<nlohmann::json> result;
-    for (const auto &msg : messages)
+    try
     {
-        result.push_back({{"role", msg.role}, {"content", {{"type", "text"}, {"text", msg.content}}}});
+        // Call executor callback with prompt name and arguments
+        const auto messages = prompt_executor_(name, arguments);
+
+        // Convert to MCP message format
+        std::vector<nlohmann::json> result;
+        for (const auto &msg : messages)
+        {
+            result.push_back({{"role", msg.role}, {"content", {{"type", "text"}, {"text", msg.content}}}});
+        }
+        return result;
     }
-    return result;
+    catch (const std::exception &error)
+    {
+        throw std::runtime_error(fmt::format("prompt execution failed: {}", error.what()));
+    }
 }
 
 const Session &Host::session() const

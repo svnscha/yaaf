@@ -59,8 +59,18 @@ struct Session
     nlohmann::json server_info = nlohmann::json::object();
 };
 
+/// Tool descriptor for listing available tools.
+struct ToolInfo
+{
+    std::string name;
+    std::string description;
+    nlohmann::json input_schema = nlohmann::json::object();
+};
+
 using ToolExecutor = std::function<ToolExecutorResult(const std::string &tool_name, const nlohmann::json &arguments)>;
 using PromptExecutor = std::function<std::vector<PromptMessage>(const std::string &prompt_name, const nlohmann::json &arguments)>;
+using ToolLister = std::function<std::vector<ToolInfo>()>;
+using PromptLister = std::function<std::vector<PromptDescriptor>()>;
 
 /// Manages the hosted MCP server session.
 /**
@@ -78,10 +88,13 @@ class Host
      * @param schema_backend Schema backend for protocol version gating
      * @param tool_executor Callback to execute tool calls (Lua-provided)
      * @param prompt_executor Callback to execute prompt requests (Lua-provided)
+     * @param tool_lister Callback to list available tools (Lua-provided)
+     * @param prompt_lister Callback to list available prompts (Lua-provided)
      * @throws std::invalid_argument if schema_backend is null
      */
     Host(std::shared_ptr<const schema::Backend> schema_backend, ToolExecutor tool_executor = nullptr,
-         PromptExecutor prompt_executor = nullptr);
+         PromptExecutor prompt_executor = nullptr, ToolLister tool_lister = nullptr,
+         PromptLister prompt_lister = nullptr);
 
     /// Initialize session and negotiate protocol version with client.
     /**
@@ -134,6 +147,8 @@ class Host
     Session session_;
     ToolExecutor tool_executor_;
     PromptExecutor prompt_executor_;
+    ToolLister tool_lister_;
+    PromptLister prompt_lister_;
 };
 
 } // namespace yaaf::mcp
