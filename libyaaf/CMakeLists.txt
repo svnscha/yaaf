@@ -22,6 +22,8 @@ target_sources(libyaaf
     cli/cli.cpp
     config/dotenv.cpp
     mcp/mcp_client.cpp
+    mcp/mcp_host.cpp
+    mcp/mcp_host_stdio.cpp
     ${LIBYAAF_MCP_PLATFORM_SOURCES}
     mcp/mcp_schema_generated.cpp
     ${MCP_SCHEMA_SOURCES}
