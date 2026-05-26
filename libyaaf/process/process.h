@@ -8,12 +8,14 @@
 #include <string_view>
 #include <vector>
 
-namespace yaaf::process {
+namespace yaaf::process
+{
 
 /**
  * Platform-agnostic options for spawning a child process.
  */
-struct ProcessOptions {
+struct ProcessOptions
+{
     /**
      * Executable path (required).
      * Can be absolute path or executable name to search in PATH.
@@ -49,7 +51,8 @@ struct ProcessOptions {
 /**
  * Result of reading from stdout with timeout semantics.
  */
-struct ReadResult {
+struct ReadResult
+{
     /**
      * True if read timed out before data was available.
      */
@@ -72,7 +75,8 @@ struct ReadResult {
  * Platform-agnostic process handle.
  * Concrete implementation is platform-specific but interface is shared.
  */
-class PlatformProcess {
+class PlatformProcess
+{
   public:
     virtual ~PlatformProcess() = default;
 
@@ -129,6 +133,6 @@ class PlatformProcess {
  *   - pipes cannot be created (resource exhaustion, permissions)
  *   - spawn fails (executable not found, permission denied, OS limit reached)
  */
-[[nodiscard]] std::unique_ptr<PlatformProcess> start_process(const ProcessOptions& options);
+[[nodiscard]] std::unique_ptr<PlatformProcess> start_process(const ProcessOptions &options);
 
 } // namespace yaaf::process

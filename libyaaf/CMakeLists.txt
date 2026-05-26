@@ -33,6 +33,7 @@ target_sources(libyaaf
     script/modules/agent.cpp
     script/modules/lua_module_utils.cpp
     script/modules/script_http.cpp
+    script/modules/script_process.cpp
     script/modules/script_yaaf.cpp
     script/modules/script_json.cpp
     script/modules/script_llm.cpp

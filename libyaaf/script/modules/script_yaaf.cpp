@@ -1,6 +1,6 @@
 #include "script_yaaf.h"
-#include "lua_module_utils.h"
 #include "../../platform/platform_name.h"
+#include "lua_module_utils.h"
 
 extern "C"
 {

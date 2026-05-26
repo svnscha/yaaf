@@ -2,7 +2,8 @@
 
 #include <string>
 
-namespace yaaf::platform {
+namespace yaaf::platform
+{
 
 /**
  * Get the normalized platform identifier for the current OS.
@@ -10,4 +11,4 @@ namespace yaaf::platform {
  */
 [[nodiscard]] std::string platform_name();
 
-}  // namespace yaaf::platform
+} // namespace yaaf::platform

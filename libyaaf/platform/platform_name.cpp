@@ -1,8 +1,10 @@
 #include "platform_name.h"
 
-namespace yaaf::platform {
+namespace yaaf::platform
+{
 
-std::string platform_name() {
+std::string platform_name()
+{
 #if defined(_WIN32)
     return "windows";
 #elif defined(__APPLE__)
@@ -14,4 +16,4 @@ std::string platform_name() {
 #endif
 }
 
-}  // namespace yaaf::platform
+} // namespace yaaf::platform

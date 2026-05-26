@@ -62,7 +62,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
-| Implementation | [-] | Shared process layer done; platform_name() and yaaf.platform done; pending: Lua process module + MCP refactor |
+| Implementation | [-] | Shared process layer + platform_name + Lua bindings done; pending: MCP stdio refactor |
 | Validation | [ ] | Build and focused tests for Lua + MCP stdio |
 | Documentation | [ ] | Module docs + yaaf runtime docs updated |
 
@@ -90,11 +90,11 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
   - [ ] Preserve existing read/write timeout and process-exit semantics
   - [ ] Keep public MCP behavior unchanged
 
-- [ ] Add Lua `process` module
-  - [ ] Create module registration and runtime context plumbing in Lua runtime bootstrap
-  - [ ] Implement `process.start({ command, args?, cwd?, env? })`
-  - [ ] Return process handle object with agreed operations for write/read/wait/close/terminate
-  - [ ] Ensure Lua-facing validation errors are actionable
+- [x] Add Lua `process` module
+  - [x] Create module registration and runtime context plumbing in Lua runtime bootstrap
+  - [x] Implement `process.start({ command, args?, cwd?, env? })`
+  - [x] Return process handle object with agreed operations for write/read/wait/close/terminate
+  - [x] Ensure Lua-facing validation errors are actionable
 
 - [x] Add `yaaf.platform`
   - [x] Extend yaaf context with platform string

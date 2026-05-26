@@ -261,6 +261,8 @@ int run_file_impl(const LuaRuntimeOptions &options, const Services *services, nl
 
         modules::register_tool_module(state);
 
+        modules::register_process_module(state);
+
         ScriptYaafContext yaaf_context;
         yaaf_context.arguments = options.arguments;
         yaaf_context.default_endpoint = options.endpoint;
@@ -310,7 +312,3 @@ int run_file(const LuaRuntimeOptions &options, const Services *services)
     return run_file_impl(options, services, nullptr);
 }
 } // namespace yaaf::script
-
-
-
-
