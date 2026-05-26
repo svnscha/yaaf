@@ -57,7 +57,7 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
 | --- | --- | --- |
 | Discovery | [x] | Baseline pinned at `e5a4f54c0d562059e9ccc6f7e7150667da58fe41`; current references inventoried across CMake, docs, devcontainer, and workflows. |
 | Implementation | [x] | Added the vendored `vcpkg` submodule, made CMake submodule-first, and updated devcontainer and workflow setup to initialize submodules instead of checking out vcpkg separately. |
-| Validation | [-] | macOS contributor flow and a fresh clone were validated locally; Linux musl and hosted CI execution remain environment-limited from this machine. |
+| Validation | [x] | Local macOS and fresh-clone validation passed, and PR #26 CI confirmed Windows, macOS, Linux musl, and runtime smoke coverage. |
 | Documentation | [x] | README and usage docs now describe clone-with-submodules, vendored bootstrap, Windows/macOS/Linux setup, musl reproduction, and baseline bump maintenance. |
 
 ## Phase 1 - Discovery
@@ -103,7 +103,7 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
 - Verified the vendored submodule commit locally with `git submodule status` and bootstrapped dependencies via `.devcontainer/setup-vcpkg.sh`.
 - Verified the normal macOS contributor path with `cmake -S . -B build -G Ninja`, `cmake --build build --config Release --target yaaf libyaaf_tests`, and `ctest --test-dir build --output-on-failure -L default`.
 - Verified a fresh clone path by cloning the repository with `--recurse-submodules`, bootstrapping `./vcpkg`, configuring, and building `yaaf` successfully.
-- Hosted CI execution and Linux musl packaging were not runnable from this macOS environment because no local Linux container runtime was available.
+- Hosted CI execution and Linux musl packaging were initially not runnable from this macOS environment because no local Linux container runtime was available.
 - Follow-up CI fix: the Linux musl job needs a container image that already has `git` so `actions/checkout` can honor `submodules: recursive` before the dependency-install step runs.
 - Follow-up CI fix: `.devcontainer/setup-vcpkg.sh` now assumes the submodule is already initialized and only validates plus bootstraps it, so CI does not need to re-fetch submodules inside the musl container.
 
@@ -113,7 +113,7 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
   - [x] Update `docs/usage.md` and any linked README setup text to use clone-with-submodules or `git submodule update --init --recursive` plus local bootstrap commands.
   - [x] Remove instructions that require cloning vcpkg into `$HOME/vcpkg` or exporting `VCPKG_ROOT` as the primary path.
   - [x] Document the repo-maintainer update flow for vcpkg pin bumps.
-- [-] Validate the migrated paths.
+- [x] Validate the migrated paths.
   - [x] Validate at least one local contributor configure/build flow against the repo-local submodule path.
-  - [ ] Validate the CI matrix and Linux musl path still configure, build, test, and package successfully with submodule-based setup.
+  - [x] Validate the CI matrix and Linux musl path still configure, build, test, and package successfully with submodule-based setup.
   - [x] Verify a fresh clone without preinstalled vcpkg can follow the documented commands successfully.
