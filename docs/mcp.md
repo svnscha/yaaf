@@ -1,5 +1,7 @@
 # MCP Tools
 
+This page covers **consuming remote MCP servers** (client mode). To **host local tools as an MCP server** (host mode), see [Authoring MCP Servers with Lua](lua.md#authoring-mcp-servers-with-lua).
+
 Yaaf loads MCP tools from a config file. The path is resolved in this order:
 
 1. `--mcp <path>` passed to `ask`, `chat`, `agent`, or `run` (or as a global option before the subcommand).

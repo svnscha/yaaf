@@ -606,13 +606,17 @@ int lua_execute(lua_State *state)
 {
     try
     {
-        const auto names = read_tool_names(state, 1);
+        auto names = read_tool_names(state, 1);
         const auto requested_name = std::string(luaL_checkstring(state, 2));
         const auto requested_lower = lowercase(requested_name);
         const auto arguments = lua_isnoneornil(state, 3) ? nlohmann::json::object() : lua_to_json(state, 3);
 
         lua_pushvalue(state, lua_upvalueindex(1));
         const int custom_index = absolute_index(state, -1);
+        if (names.empty())
+        {
+            names = all_names(state, custom_index);
+        }
         for (const auto &name : names)
         {
             if (!push_tool(state, custom_index, name))

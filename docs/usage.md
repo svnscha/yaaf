@@ -258,7 +258,7 @@ Options:
 
 ### `run`
 
-`run` executes a standalone Lua file through the native script runtime.
+`run` executes a standalone Lua file through the native script runtime. Scripts can consume MCP servers (via `mcp` module APIs) or host them (via `mcp.host_stdio()`).
 
 ```powershell
 yaaf run ./examples/example.lua one two three
@@ -271,6 +271,16 @@ Options:
 | `--mcp <path>` | Load MCP tools from an explicit config path for this script run. |
 | `<file.lua>` | Path to the standalone Lua script to execute. Required. |
 | `[args...]` | Positional arguments exposed to the script as `yaaf.args`. |
+
+**Hosting an MCP server:**
+
+A script can call `mcp.host_stdio()` to start an MCP server that listens on stdin/stdout. This allows MCP clients (Claude, VS Code, etc.) to connect and use the script's registered tools and prompts.
+
+```powershell
+yaaf run ./examples/mcp_host_example.lua
+```
+
+See [Authoring MCP Servers with Lua](../lua.md#authoring-mcp-servers-with-lua) for details on implementing hosted tools and prompts.
 
 ## Common Workflows
 
