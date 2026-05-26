@@ -1,5 +1,5 @@
-#include "libyaaf/pch/pch_std.h"
-#include "libyaaf/pch/pch_dependencies.h"
+#include "../pch/pch_std.h"
+#include "../pch/pch_dependencies.h"
 
 #include "mcp_host.h"
 

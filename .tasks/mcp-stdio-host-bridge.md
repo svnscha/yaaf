@@ -98,10 +98,10 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
   - [x] Add Lua-facing host registration and start APIs in `libyaaf/script/modules/script_mcp.*`.
   - [x] Allow Lua scripts to register hosted prompt descriptors and prompt handlers.
   - [x] Allow host mode to expose selected yaaf tools through MCP `tools/list` and `tools/call`.
-- [-] Wire hosted tool and prompt execution into existing yaaf runtime facilities.
-  - [-] Adapt yaaf tool specs and execution results into MCP server tool descriptors and call results.
-  - [-] Define prompt descriptor fields and message payload mapping for `prompts/get`.
-  - [-] Ensure hosted server mode does not accidentally expose client-configured remote MCP tools as hosted tools.
+- [x] Wire hosted tool and prompt execution into existing yaaf runtime facilities.
+  - [x] Adapt yaaf tool specs and execution results into MCP server tool descriptors and call results.
+  - [x] Define prompt descriptor fields and message payload mapping for `prompts/get`.
+  - [x] Ensure hosted server mode does not accidentally expose client-configured remote MCP tools as hosted tools.
 
 ## Phase 3 - Validation
 

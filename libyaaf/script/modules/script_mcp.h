@@ -14,7 +14,7 @@ struct PromptInfo
 {
     std::string description;
     std::vector<yaaf::mcp::PromptArgument> arguments;
-    int handler_ref = LUA_NOREF;  ///< Lua registry reference to handler function
+    int handler_ref = -2;  ///< Lua registry reference to handler function (LUA_NOREF = -2)
 };
 
 struct ScriptMcpContext

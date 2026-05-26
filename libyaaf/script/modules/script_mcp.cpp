@@ -464,12 +464,20 @@ int lua_host_stdio(lua_State *state)
     {
         auto &runtime = context(state);
 
-        // Get or create schema backend from options
-        auto schema_backend = runtime.options.schema_registry;
-        if (!schema_backend)
+        // Get schema backend from options registry
+        const auto schema_registry = runtime.options.schema_registry;
+        if (!schema_registry)
         {
             throw std::runtime_error(
                 "schema_registry not available in MCP options; cannot host server without schema backend");
+        }
+
+        // Get the backend for the latest protocol version
+        const auto schema_backend = schema_registry->backend(schema_registry->latest_protocol_version());
+        if (!schema_backend)
+        {
+            throw std::runtime_error(
+                "failed to get schema backend for latest protocol version");
         }
 
         // Extract tool and prompt filter lists
@@ -537,17 +545,17 @@ int lua_host_stdio(lua_State *state)
         }
 
         // Create tool executor callback (captures state and runtime)
-        auto tool_executor = [state](const std::string &tool_name, const nlohmann::json &arguments) {
+        yaaf::mcp::ToolExecutor tool_executor = [state](const std::string &tool_name, const nlohmann::json &arguments) {
             return tool_executor_callback(state, tool_name, arguments);
         };
 
         // Create prompt executor callback (captures state and runtime context)
-        auto prompt_executor = [state, &runtime](const std::string &prompt_name, const nlohmann::json &arguments) {
+        yaaf::mcp::PromptExecutor prompt_executor = [state, &runtime](const std::string &prompt_name, const nlohmann::json &arguments) {
             return prompt_executor_callback(state, runtime, prompt_name, arguments);
         };
 
         // Create tool lister callback that retrieves available tools from Lua
-        auto tool_lister = [state, tool_filter]() -> std::vector<yaaf::mcp::ToolInfo> {
+        yaaf::mcp::ToolLister tool_lister = [state, tool_filter]() -> std::vector<yaaf::mcp::ToolInfo> {
             std::vector<yaaf::mcp::ToolInfo> result;
             const int stack_top = lua_gettop(state);
 
@@ -708,7 +716,7 @@ int lua_host_stdio(lua_State *state)
         };
 
         // Create prompt lister callback that retrieves hosted prompts
-        auto prompt_lister = [&runtime, prompt_filter]() -> std::vector<yaaf::mcp::PromptDescriptor> {
+        yaaf::mcp::PromptLister prompt_lister = [&runtime, prompt_filter]() -> std::vector<yaaf::mcp::PromptDescriptor> {
             std::vector<yaaf::mcp::PromptDescriptor> result;
 
             // Filter prompts if filter list is provided
@@ -743,8 +751,14 @@ int lua_host_stdio(lua_State *state)
         };
 
         // Create Host instance with lister callbacks
-        auto host = std::make_shared<yaaf::mcp::Host>(schema_backend, tool_executor, prompt_executor,
-                                                      tool_lister, prompt_lister);
+        auto host_ptr = std::make_unique<yaaf::mcp::Host>(
+            schema_backend,
+            std::move(tool_executor),
+            std::move(prompt_executor),
+            std::move(tool_lister),
+            std::move(prompt_lister)
+        );
+        auto host = std::shared_ptr<yaaf::mcp::Host>(std::move(host_ptr));
 
         // Create StdioHost wrapper
         auto stdio_host = std::make_shared<yaaf::mcp::StdioHost>(*host, std::cin, std::cout);

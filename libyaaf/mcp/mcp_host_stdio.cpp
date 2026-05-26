@@ -1,5 +1,5 @@
-#include "libyaaf/pch/pch_std.h"
-#include "libyaaf/pch/pch_dependencies.h"
+#include "../pch/pch_std.h"
+#include "../pch/pch_dependencies.h"
 
 #include "mcp_host_stdio.h"
 
@@ -229,7 +229,7 @@ void StdioHost::run()
         // Handle initialize specially
         if (req.method == "initialize")
         {
-            handle_initialize(req);
+            (void)handle_initialize(req);
             continue;
         }
 
