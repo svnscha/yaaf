@@ -4,8 +4,6 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 vcpkg_dir="${repo_root}/vcpkg"
-vcpkg_ref="e5a4f54c0d562059e9ccc6f7e7150667da58fe41"
-vcpkg_repo="https://github.com/microsoft/vcpkg.git"
 
 if [[ -r /etc/os-release ]]; then
   . /etc/os-release
@@ -14,13 +12,16 @@ if [[ -r /etc/os-release ]]; then
   fi
 fi
 
-if [[ ! -d "${vcpkg_dir}/.git" ]]; then
-  rm -rf "${vcpkg_dir}"
-  git init "${vcpkg_dir}" >/dev/null
-  git -C "${vcpkg_dir}" remote add origin "${vcpkg_repo}"
+if [[ ! -f "${repo_root}/.gitmodules" ]]; then
+  printf 'Missing .gitmodules in %s\n' "${repo_root}" >&2
+  exit 1
 fi
 
-git -C "${vcpkg_dir}" fetch --depth 1 origin "${vcpkg_ref}"
-git -C "${vcpkg_dir}" checkout --force --detach "${vcpkg_ref}"
+git -C "${repo_root}" submodule update --init --recursive --depth 1 vcpkg
+
+if [[ ! -x "${vcpkg_dir}/bootstrap-vcpkg.sh" ]]; then
+  printf 'Missing vcpkg bootstrap script at %s\n' "${vcpkg_dir}/bootstrap-vcpkg.sh" >&2
+  exit 1
+fi
 
 "${vcpkg_dir}/bootstrap-vcpkg.sh"

@@ -14,7 +14,7 @@
         "VCPKG_TARGET_TRIPLET": "x64-linux-musl-static",
         "VCPKG_ROOT": "${containerWorkspaceFolder}/vcpkg"
     },
-    "postCreateCommand": "bash ./.devcontainer/setup-vcpkg.sh",
+    "postCreateCommand": "git submodule update --init --recursive && bash ./.devcontainer/setup-vcpkg.sh",
     "customizations": {
         "vscode": {
             "extensions": [

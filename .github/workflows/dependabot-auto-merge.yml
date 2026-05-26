@@ -36,13 +36,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Checkout vcpkg
-        uses: actions/checkout@v6
-        with:
-          repository: microsoft/vcpkg
-          ref: e5a4f54c0d562059e9ccc6f7e7150667da58fe41
-          path: vcpkg
+          submodules: recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6

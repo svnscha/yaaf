@@ -102,9 +102,13 @@ yaaf run ./examples/example.lua one two three
 
 Build, environment setup, executable locations, and command reference live in [Usage](https://svnscha.github.io/yaaf/usage/). The full documentation index is at [https://svnscha.github.io/yaaf/](https://svnscha.github.io/yaaf/).
 
-For Windows development builds, use the checked-in presets from [Usage](https://svnscha.github.io/yaaf/usage/): `cmake --preset windows-x64`, then `cmake --build --preset windows-debug` or `cmake --build --preset windows-release`.
+Start from a clone with the vendored vcpkg submodule initialized: `git clone --recurse-submodules https://github.com/svnscha/yaaf.git` or `git submodule update --init --recursive` in an existing clone. Then bootstrap `./vcpkg` before the first configure.
 
-For the Linux release path, use the musl static preset documented in [Usage](https://svnscha.github.io/yaaf/usage/). The validated local reproduction command is `cmake --preset linux-musl-static && cmake --build build/linux-musl-static --config Release --target yaaf`.
+For Windows development builds, use the checked-in presets from [Usage](https://svnscha.github.io/yaaf/usage/): `.\vcpkg\bootstrap-vcpkg.bat`, then `cmake --preset windows-x64`, then `cmake --build --preset windows-debug` or `cmake --build --preset windows-release`.
+
+For macOS and Linux contributor builds, bootstrap the vendored submodule with `./vcpkg/bootstrap-vcpkg.sh`, then run `cmake -S . -B build -G Ninja && cmake --build build`.
+
+For the Linux release path, use the musl static preset documented in [Usage](https://svnscha.github.io/yaaf/usage/). The validated local reproduction command is `git submodule update --init --recursive && ./vcpkg/bootstrap-vcpkg.sh && cmake --preset linux-musl-static && cmake --build build/linux-musl-static --config Release --target yaaf`.
 
 Serve the docs locally with MkDocs:
 

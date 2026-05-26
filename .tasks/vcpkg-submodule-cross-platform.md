@@ -56,9 +56,9 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | Baseline pinned at `e5a4f54c0d562059e9ccc6f7e7150667da58fe41`; current references inventoried across CMake, docs, devcontainer, and workflows. |
-| Implementation | [ ] | Convert repository, build logic, devcontainer, and CI to submodule-first flow. |
-| Validation | [ ] | Re-run representative configure/build/test flows on affected platforms or CI paths. |
-| Documentation | [ ] | Align README and usage docs with the new setup and maintenance flow. |
+| Implementation | [x] | Added the vendored `vcpkg` submodule, made CMake submodule-first, and updated devcontainer and workflow setup to initialize submodules instead of checking out vcpkg separately. |
+| Validation | [-] | macOS contributor flow and a fresh clone were validated locally; Linux musl and hosted CI execution remain environment-limited from this machine. |
+| Documentation | [x] | README and usage docs now describe clone-with-submodules, vendored bootstrap, Windows/macOS/Linux setup, musl reproduction, and baseline bump maintenance. |
 
 ## Phase 1 - Discovery
 
@@ -77,34 +77,41 @@ Use a single repo-owned vcpkg submodule and one documented bootstrap/configure s
 
 ## Phase 2 - Repository And Build Refactor
 
-- [ ] Track vcpkg as a repository submodule.
-  - [ ] Add `.gitmodules` with `vcpkg` pointing at `https://github.com/microsoft/vcpkg.git` and pin it to the intended commit.
-  - [ ] Remove the `vcpkg/` ignore rule so the submodule is tracked correctly.
-- [ ] Make the repo-local submodule the primary build path.
-  - [ ] Simplify `CMakeLists.txt` toolchain resolution to prefer `${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake` as the default repository path.
-  - [ ] Re-evaluate whether Windows-specific Visual Studio vcpkg fallback should remain; remove it if it conflicts with the goal of one consistent workflow.
-  - [ ] Keep `CMakePresets.json` and any direct configure commands aligned with the vendored submodule path.
-- [ ] Refactor devcontainer setup around the submodule.
-  - [ ] Replace `.devcontainer/setup-vcpkg.sh` detached-fetch logic with submodule initialization or validation plus bootstrap.
-  - [ ] Keep musl-specific env vars and overlay triplet wiring unchanged except where the setup mechanism changes.
+- [x] Track vcpkg as a repository submodule.
+  - [x] Add `.gitmodules` with `vcpkg` pointing at `https://github.com/microsoft/vcpkg.git` and pin it to the intended commit.
+  - [x] Remove the `vcpkg/` ignore rule so the submodule is tracked correctly.
+- [x] Make the repo-local submodule the primary build path.
+  - [x] Simplify `CMakeLists.txt` toolchain resolution to prefer `${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake` as the default repository path.
+  - [x] Re-evaluate whether Windows-specific Visual Studio vcpkg fallback should remain; remove it if it conflicts with the goal of one consistent workflow.
+  - [x] Keep `CMakePresets.json` and any direct configure commands aligned with the vendored submodule path.
+- [x] Refactor devcontainer setup around the submodule.
+  - [x] Replace `.devcontainer/setup-vcpkg.sh` detached-fetch logic with submodule initialization or validation plus bootstrap.
+  - [x] Keep musl-specific env vars and overlay triplet wiring unchanged except where the setup mechanism changes.
 
 ## Phase 3 - CI And Automation
 
-- [ ] Update GitHub Actions workflows to use the vendored submodule.
-  - [ ] Change workflow checkout steps to fetch submodules instead of performing a second `actions/checkout` for `microsoft/vcpkg`.
-  - [ ] Remove duplicated bootstrap/setup logic that exists only to materialize a standalone `vcpkg` checkout.
-  - [ ] Keep Windows, macOS, Linux musl, packaging, and runtime smoke jobs behaviorally equivalent after the setup change.
-- [ ] Update dependency-maintenance expectations.
-  - [ ] Remove now-obsolete workflow assumptions about separately checked-out vcpkg.
-  - [ ] Document or script the maintainer flow for advancing the submodule and syncing `vcpkg.json` baseline when dependencies change.
+- [x] Update GitHub Actions workflows to use the vendored submodule.
+  - [x] Change workflow checkout steps to fetch submodules instead of performing a second `actions/checkout` for `microsoft/vcpkg`.
+  - [x] Remove duplicated bootstrap/setup logic that exists only to materialize a standalone `vcpkg` checkout.
+  - [x] Keep Windows, macOS, Linux musl, packaging, and runtime smoke jobs behaviorally equivalent after the setup change.
+- [x] Update dependency-maintenance expectations.
+  - [x] Remove now-obsolete workflow assumptions about separately checked-out vcpkg.
+  - [x] Document or script the maintainer flow for advancing the submodule and syncing `vcpkg.json` baseline when dependencies change.
+
+## Validation Notes
+
+- Verified the vendored submodule commit locally with `git submodule status` and bootstrapped dependencies via `.devcontainer/setup-vcpkg.sh`.
+- Verified the normal macOS contributor path with `cmake -S . -B build -G Ninja`, `cmake --build build --config Release --target yaaf libyaaf_tests`, and `ctest --test-dir build --output-on-failure -L default`.
+- Verified a fresh clone path by cloning the repository with `--recurse-submodules`, bootstrapping `./vcpkg`, configuring, and building `yaaf` successfully.
+- Hosted CI execution and Linux musl packaging were not runnable from this macOS environment because no local Linux container runtime was available.
 
 ## Phase 4 - Documentation And Validation
 
-- [ ] Rewrite contributor setup docs for one cross-platform vcpkg flow.
-  - [ ] Update `docs/usage.md` and any linked README setup text to use clone-with-submodules or `git submodule update --init --recursive` plus local bootstrap commands.
-  - [ ] Remove instructions that require cloning vcpkg into `$HOME/vcpkg` or exporting `VCPKG_ROOT` as the primary path.
-  - [ ] Document the repo-maintainer update flow for vcpkg pin bumps.
-- [ ] Validate the migrated paths.
-  - [ ] Validate at least one local contributor configure/build flow against the repo-local submodule path.
+- [x] Rewrite contributor setup docs for one cross-platform vcpkg flow.
+  - [x] Update `docs/usage.md` and any linked README setup text to use clone-with-submodules or `git submodule update --init --recursive` plus local bootstrap commands.
+  - [x] Remove instructions that require cloning vcpkg into `$HOME/vcpkg` or exporting `VCPKG_ROOT` as the primary path.
+  - [x] Document the repo-maintainer update flow for vcpkg pin bumps.
+- [-] Validate the migrated paths.
+  - [x] Validate at least one local contributor configure/build flow against the repo-local submodule path.
   - [ ] Validate the CI matrix and Linux musl path still configure, build, test, and package successfully with submodule-based setup.
-  - [ ] Verify a fresh clone without preinstalled vcpkg can follow the documented commands successfully.
+  - [x] Verify a fresh clone without preinstalled vcpkg can follow the documented commands successfully.

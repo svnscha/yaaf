@@ -11,7 +11,6 @@ macOS:
 - Ninja
 - pkg-config
 - Git
-- vcpkg checked out locally with `VCPKG_ROOT` set
 
 Linux contributor build:
 
@@ -21,17 +20,17 @@ Linux contributor build:
 - `pkg-config`
 - Git
 - `zip`, `unzip`, `tar`, and `curl`
-- vcpkg checked out locally with `VCPKG_ROOT` set
 
-Recommended setup:
+Recommended macOS setup:
 
 ```sh
 xcode-select --install
-brew install cmake ninja
-brew install pkg-config
-git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
-"$HOME/vcpkg/bootstrap-vcpkg.sh"
-export VCPKG_ROOT="$HOME/vcpkg"
+brew install cmake ninja pkg-config
+git clone --recurse-submodules https://github.com/svnscha/yaaf.git
+cd yaaf
+./vcpkg/bootstrap-vcpkg.sh
+cmake -S . -B build -G Ninja
+cmake --build build
 ```
 
 Ubuntu Linux contributor setup:
@@ -39,25 +38,33 @@ Ubuntu Linux contributor setup:
 ```sh
 sudo apt update
 sudo apt install -y build-essential cmake ninja-build pkg-config git zip unzip tar curl
-git clone https://github.com/microsoft/vcpkg "$HOME/vcpkg"
-"$HOME/vcpkg/bootstrap-vcpkg.sh"
-export VCPKG_ROOT="$HOME/vcpkg"
-```
-
-If you use VS Code with CMake Tools, either start VS Code from a shell where `VCPKG_ROOT` is already exported, or set `cmake.configureEnvironment.VCPKG_ROOT` to the same path.
-
-Contributors on Linux can still use the normal distro-native CMake plus vcpkg path for day-to-day development builds. The release artifact path uses the musl static preset and the musl-native Linux devcontainer / CI environment.
-
-Configure and build with CMake and the vcpkg toolchain:
-
-```sh
-cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+git clone --recurse-submodules https://github.com/svnscha/yaaf.git
+cd yaaf
+./vcpkg/bootstrap-vcpkg.sh
+cmake -S . -B build -G Ninja
 cmake --build build
 ```
 
-On Windows, use the checked-in presets so Debug and Release builds share the same Visual Studio x64 configure tree:
+If you already cloned the repository without submodules, run `git submodule update --init --recursive` before bootstrapping `./vcpkg`.
+
+If you use VS Code with CMake Tools, open the repository root after the submodule is initialized. The checked-in devcontainer and workspace settings already point CMake at `./vcpkg/scripts/buildsystems/vcpkg.cmake`.
+
+Contributors on Linux still use the normal distro-native CMake plus the vendored `./vcpkg` checkout for day-to-day development builds. The release artifact path uses the musl static preset and the musl-native Linux devcontainer / CI environment.
+
+Configure and build with CMake and the vendored vcpkg toolchain:
+
+```sh
+git submodule update --init --recursive
+./vcpkg/bootstrap-vcpkg.sh
+cmake -S . -B build -G Ninja
+cmake --build build
+```
+
+On Windows, use the vendored submodule and the checked-in presets so Debug and Release builds share the same Visual Studio x64 configure tree:
 
 ```powershell
+git submodule update --init --recursive
+.\vcpkg\bootstrap-vcpkg.bat
 cmake --preset windows-x64
 cmake --build --preset windows-debug
 cmake --build --preset windows-release
@@ -86,6 +93,8 @@ Recommended environment:
 Configure and build the musl release artifact:
 
 ```sh
+git submodule update --init --recursive
+./vcpkg/bootstrap-vcpkg.sh
 cmake --preset linux-musl-static
 cmake --build build/linux-musl-static --config Release --target yaaf
 ```
@@ -99,6 +108,8 @@ build/linux-musl-static/app/yaaf run examples/example.lua smoke-test
 ```
 
 The Linux release package step copies `lua/` and `examples/` next to the executable, so the packaged bundle remains runnable from its own directory.
+
+When updating vcpkg, advance the `vcpkg` submodule to the desired upstream commit, update `vcpkg.json`'s `builtin-baseline` to the same commit, re-bootstrap `./vcpkg`, and rerun the relevant configure, build, and test flows before committing both changes together.
 
 The build also copies `lua/` and `examples/` next to the executable, so the app can discover its Lua command modules and run included examples from the executable directory. The native runtime resolves bundled Lua modules (such as `require("yaaf")`, `require("llm")`, and the `lua/cli/*` command modules) from this executable-adjacent `lua/` tree, so `yaaf` behaves the same regardless of the caller's current working directory. Script-local `require(...)` lookups next to the invoked `.lua` file still take precedence over the bundled tree.
 
