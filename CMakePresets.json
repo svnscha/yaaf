@@ -40,6 +40,21 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Linux"
             }
+        },
+        {
+            "name": "osx-arm64",
+            "displayName": "macOS arm64",
+            "description": "macOS arm64 development configure path using Ninja Multi-Config and the default vcpkg triplet.",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/build/osx-arm64",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "arm64-osx"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
         }
     ],
     "buildPresets": [
@@ -55,6 +70,20 @@
             "displayName": "Windows Release",
             "description": "Build the Windows x64 development tree with the Release configuration.",
             "configurePreset": "windows-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "osx-debug",
+            "displayName": "macOS Debug",
+            "description": "Build the macOS arm64 development tree with the Debug configuration.",
+            "configurePreset": "osx-arm64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "osx-release",
+            "displayName": "macOS Release",
+            "description": "Build the macOS arm64 development tree with the Release configuration.",
+            "configurePreset": "osx-arm64",
             "configuration": "Release"
         }
     ]
