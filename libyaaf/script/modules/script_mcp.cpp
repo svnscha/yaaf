@@ -13,7 +13,9 @@ namespace
 {
 using lua_module_utils::absolute_index;
 using lua_module_utils::push_json;
+using lua_module_utils::require_module;
 using lua_module_utils::throw_lua_error;
+using lua_module_utils::lua_error_message;
 
 [[nodiscard]] ScriptMcpContext &context(lua_State *state)
 
@@ -142,6 +144,428 @@ int lua_call_tool(lua_State *state)
     }
 }
 
+/// Helper to extract prompt argument specs from Lua table.
+[[nodiscard]] std::vector<yaaf::mcp::PromptArgument> extract_prompt_arguments(lua_State *state, int table_index)
+{
+    std::vector<yaaf::mcp::PromptArgument> result;
+    if (lua_isnoneornil(state, table_index))
+    {
+        return result;
+    }
+
+    table_index = absolute_index(state, table_index);
+    if (!lua_istable(state, table_index))
+    {
+        throw std::invalid_argument("prompt arguments must be a table or nil");
+    }
+
+    const auto count = static_cast<std::size_t>(lua_rawlen(state, table_index));
+    result.reserve(count);
+    for (std::size_t array_index = 1; array_index <= count; ++array_index)
+    {
+        lua_rawgeti(state, table_index, static_cast<int>(array_index));
+        if (!lua_istable(state, -1))
+        {
+            lua_pop(state, 1);
+            throw std::invalid_argument("each prompt argument must be a table");
+        }
+
+        const int arg_index = absolute_index(state, -1);
+        
+        // Extract name
+        lua_getfield(state, arg_index, "name");
+        if (!lua_isstring(state, -1))
+        {
+            lua_pop(state, 2);
+            throw std::invalid_argument("prompt argument 'name' must be a string");
+        }
+        std::string name = lua_tostring(state, -1);
+        lua_pop(state, 1);
+
+        // Extract description
+        lua_getfield(state, arg_index, "description");
+        std::string description = lua_isstring(state, -1) ? lua_tostring(state, -1) : "";
+        lua_pop(state, 1);
+
+        // Extract required flag
+        lua_getfield(state, arg_index, "required");
+        bool required = lua_toboolean(state, -1) != 0;
+        lua_pop(state, 1);
+
+        result.emplace_back(yaaf::mcp::PromptArgument{name, description, required});
+        lua_pop(state, 1);
+    }
+
+    return result;
+}
+
+/// Handler for mcp.register_prompt(descriptor)
+int lua_register_prompt(lua_State *state)
+{
+    try
+    {
+        auto &runtime = context(state);
+
+        // Validate descriptor table
+        if (!lua_istable(state, 1))
+        {
+            throw std::invalid_argument("register_prompt requires a table descriptor");
+        }
+
+        // Extract name
+        lua_getfield(state, 1, "name");
+        if (!lua_isstring(state, -1))
+        {
+            lua_pop(state, 1);
+            throw std::invalid_argument("prompt descriptor 'name' must be a string");
+        }
+        std::string name = lua_tostring(state, -1);
+        lua_pop(state, 1);
+
+        if (name.empty())
+        {
+            throw std::invalid_argument("prompt name cannot be empty");
+        }
+
+        if (runtime.hosted_prompts.find(name) != runtime.hosted_prompts.end())
+        {
+            throw std::invalid_argument(fmt::format("prompt '{}' already registered", name));
+        }
+
+        // Extract description
+        lua_getfield(state, 1, "description");
+        std::string description = lua_isstring(state, -1) ? lua_tostring(state, -1) : "";
+        lua_pop(state, 1);
+
+        // Extract arguments
+        lua_getfield(state, 1, "arguments");
+        auto arguments = extract_prompt_arguments(state, -1);
+        lua_pop(state, 1);
+
+        // Extract and validate handler function
+        lua_getfield(state, 1, "handler");
+        if (!lua_isfunction(state, -1))
+        {
+            lua_pop(state, 1);
+            throw std::invalid_argument("prompt descriptor 'handler' must be a function");
+        }
+
+        // Store handler function reference in Lua registry
+        int handler_ref = luaL_ref(state, LUA_REGISTRYINDEX);
+
+        // Store prompt info
+        PromptInfo prompt_info;
+        prompt_info.description = description;
+        prompt_info.arguments = arguments;
+        prompt_info.handler_ref = handler_ref;
+
+        runtime.hosted_prompts[name] = std::move(prompt_info);
+
+        lua_pushboolean(state, 1);
+        return 1;
+    }
+    catch (const std::exception &error)
+    {
+        throw_lua_error(state, error.what());
+    }
+}
+
+/// Helper to execute a prompt handler and return messages.
+[[nodiscard]] std::vector<yaaf::mcp::PromptMessage> execute_prompt_handler(
+    lua_State *state, int handler_ref, const nlohmann::json &arguments)
+{
+    std::vector<yaaf::mcp::PromptMessage> result;
+
+    // Get handler from registry
+    lua_rawgeti(state, LUA_REGISTRYINDEX, handler_ref);
+    if (!lua_isfunction(state, -1))
+    {
+        lua_pop(state, 1);
+        throw std::runtime_error("prompt handler is no longer available in registry");
+    }
+
+    // Push arguments as Lua table
+    push_json(state, arguments);
+
+    // Call handler
+    if (lua_pcall(state, 1, 1, 0) != 0)
+    {
+        std::string error = lua_error_message(state);
+        lua_pop(state, 1);
+        throw std::runtime_error(fmt::format("prompt handler failed: {}", error));
+    }
+
+    // Extract result messages array
+    if (!lua_istable(state, -1))
+    {
+        lua_pop(state, 1);
+        throw std::runtime_error("prompt handler must return a table");
+    }
+
+    const int result_index = absolute_index(state, -1);
+    lua_getfield(state, result_index, "messages");
+    if (!lua_istable(state, -1))
+    {
+        lua_pop(state, 2);
+        throw std::runtime_error("prompt handler result must contain 'messages' array");
+    }
+
+    const int messages_index = absolute_index(state, -1);
+    const auto msg_count = static_cast<std::size_t>(lua_rawlen(state, messages_index));
+    result.reserve(msg_count);
+
+    for (std::size_t msg_index = 1; msg_index <= msg_count; ++msg_index)
+    {
+        lua_rawgeti(state, messages_index, static_cast<int>(msg_index));
+        if (!lua_istable(state, -1))
+        {
+            lua_pop(state, 3);
+            throw std::runtime_error("each message in prompt result must be a table");
+        }
+
+        const int msg_table_index = absolute_index(state, -1);
+
+        // Extract role
+        lua_getfield(state, msg_table_index, "role");
+        if (!lua_isstring(state, -1))
+        {
+            lua_pop(state, 4);
+            throw std::runtime_error("message 'role' must be a string");
+        }
+        std::string role = lua_tostring(state, -1);
+        lua_pop(state, 1);
+
+        // Extract content
+        lua_getfield(state, msg_table_index, "content");
+        if (!lua_isstring(state, -1))
+        {
+            lua_pop(state, 4);
+            throw std::runtime_error("message 'content' must be a string");
+        }
+        std::string content = lua_tostring(state, -1);
+        lua_pop(state, 1);
+
+        result.emplace_back(yaaf::mcp::PromptMessage{role, content});
+        lua_pop(state, 1);
+    }
+
+    lua_pop(state, 2);
+    return result;
+}
+
+/// Executor callback for tools hosted via mcp.host_stdio().
+/// Calls tool.execute() from the tool registry.
+[[nodiscard]] yaaf::mcp::ToolExecutorResult tool_executor_callback(
+    lua_State *state, const std::string &tool_name, const nlohmann::json &arguments)
+{
+    yaaf::mcp::ToolExecutorResult result;
+    result.is_error = false;
+
+    try
+    {
+        // Require tool module
+        require_module(state, "tool");
+        const int tool_module_index = absolute_index(state, -1);
+
+        // Call tool.execute({}, tool_name, arguments)
+        lua_getfield(state, tool_module_index, "execute");
+        if (!lua_isfunction(state, -1))
+        {
+            lua_pop(state, 2);
+            result.content = "tool.execute is not available";
+            result.is_error = true;
+            return result;
+        }
+
+        // Push empty tool selection array (use all tools)
+        lua_newtable(state);
+
+        // Push tool name
+        lua_pushlstring(state, tool_name.c_str(), tool_name.size());
+
+        // Push arguments
+        push_json(state, arguments);
+
+        // Call tool.execute({}, tool_name, arguments)
+        if (lua_pcall(state, 3, 1, 0) != 0)
+        {
+            result.content = lua_error_message(state);
+            lua_pop(state, 2);
+            result.is_error = true;
+            return result;
+        }
+
+        // Extract result table
+        if (!lua_istable(state, -1))
+        {
+            lua_pop(state, 2);
+            result.content = "tool execution returned non-table result";
+            result.is_error = true;
+            return result;
+        }
+
+        const int exec_result_index = absolute_index(state, -1);
+
+        // Extract success flag
+        lua_getfield(state, exec_result_index, "success");
+        bool success = lua_toboolean(state, -1) != 0;
+        lua_pop(state, 1);
+
+        // Extract content
+        lua_getfield(state, exec_result_index, "content");
+        result.content = lua_isstring(state, -1) ? lua_tostring(state, -1) : "";
+        lua_pop(state, 1);
+
+        result.is_error = !success;
+
+        lua_pop(state, 2);
+        return result;
+    }
+    catch (const std::exception &error)
+    {
+        result.content = fmt::format("tool executor error: {}", error.what());
+        result.is_error = true;
+        return result;
+    }
+}
+
+/// Executor callback for prompts hosted via mcp.host_stdio().
+[[nodiscard]] std::vector<yaaf::mcp::PromptMessage> prompt_executor_callback(
+    lua_State *state, ScriptMcpContext &context, const std::string &prompt_name,
+    const nlohmann::json &arguments)
+{
+    std::vector<yaaf::mcp::PromptMessage> result;
+
+    try
+    {
+        auto it = context.hosted_prompts.find(prompt_name);
+        if (it == context.hosted_prompts.end())
+        {
+            throw std::runtime_error(fmt::format("unknown prompt: {}", prompt_name));
+        }
+
+        result = execute_prompt_handler(state, it->second.handler_ref, arguments);
+        return result;
+    }
+    catch (const std::exception &error)
+    {
+        // Return error in message format
+        result.emplace_back(yaaf::mcp::PromptMessage{"assistant", error.what()});
+        return result;
+    }
+}
+
+/// Handler for mcp.host_stdio({tools, prompts})
+int lua_host_stdio(lua_State *state)
+{
+    try
+    {
+        auto &runtime = context(state);
+
+        // Get or create schema backend from options
+        auto schema_backend = runtime.options.schema_registry;
+        if (!schema_backend)
+        {
+            throw std::runtime_error(
+                "schema_registry not available in MCP options; cannot host server without schema backend");
+        }
+
+        // Extract tool and prompt filter lists
+        std::vector<std::string> tool_filter;
+        std::vector<std::string> prompt_filter;
+
+        if (!lua_isnoneornil(state, 1))
+        {
+            if (!lua_istable(state, 1))
+            {
+                throw std::invalid_argument("host_stdio requires a table argument or nil");
+            }
+
+            // Extract tools array
+            lua_getfield(state, 1, "tools");
+            if (!lua_isnil(state, -1))
+            {
+                if (!lua_istable(state, -1))
+                {
+                    lua_pop(state, 1);
+                    throw std::invalid_argument("host_stdio 'tools' must be an array or nil");
+                }
+                const int tools_index = absolute_index(state, -1);
+                const auto count = static_cast<std::size_t>(lua_rawlen(state, tools_index));
+                tool_filter.reserve(count);
+                for (std::size_t idx = 1; idx <= count; ++idx)
+                {
+                    lua_rawgeti(state, tools_index, static_cast<int>(idx));
+                    if (!lua_isstring(state, -1))
+                    {
+                        lua_pop(state, 2);
+                        throw std::invalid_argument("tool names must be strings");
+                    }
+                    tool_filter.emplace_back(lua_tostring(state, -1));
+                    lua_pop(state, 1);
+                }
+            }
+            lua_pop(state, 1);
+
+            // Extract prompts array
+            lua_getfield(state, 1, "prompts");
+            if (!lua_isnil(state, -1))
+            {
+                if (!lua_istable(state, -1))
+                {
+                    lua_pop(state, 1);
+                    throw std::invalid_argument("host_stdio 'prompts' must be an array or nil");
+                }
+                const int prompts_index = absolute_index(state, -1);
+                const auto count = static_cast<std::size_t>(lua_rawlen(state, prompts_index));
+                prompt_filter.reserve(count);
+                for (std::size_t idx = 1; idx <= count; ++idx)
+                {
+                    lua_rawgeti(state, prompts_index, static_cast<int>(idx));
+                    if (!lua_isstring(state, -1))
+                    {
+                        lua_pop(state, 2);
+                        throw std::invalid_argument("prompt names must be strings");
+                    }
+                    prompt_filter.emplace_back(lua_tostring(state, -1));
+                    lua_pop(state, 1);
+                }
+            }
+            lua_pop(state, 1);
+        }
+
+        // Create tool executor callback (captures state and runtime)
+        auto tool_executor = [state](const std::string &tool_name, const nlohmann::json &arguments) {
+            return tool_executor_callback(state, tool_name, arguments);
+        };
+
+        // Create prompt executor callback (captures state and runtime context)
+        auto prompt_executor = [state, &runtime](const std::string &prompt_name, const nlohmann::json &arguments) {
+            return prompt_executor_callback(state, runtime, prompt_name, arguments);
+        };
+
+        // Create Host instance
+        auto host = std::make_shared<yaaf::mcp::Host>(schema_backend, tool_executor, prompt_executor);
+
+        // Create StdioHost wrapper
+        auto stdio_host = std::make_shared<yaaf::mcp::StdioHost>(*host, std::cin, std::cout);
+
+        // Store in runtime context for cleanup
+        runtime.host = host;
+        runtime.stdio_host = stdio_host;
+
+        // Run the server (blocks until client disconnects or error)
+        stdio_host->run();
+
+        lua_pushboolean(state, 1);
+        return 1;
+    }
+    catch (const std::exception &error)
+    {
+        throw_lua_error(state, error.what());
+    }
+}
+
 void push_mcp_function(lua_State *state, ScriptMcpContext &runtime, lua_CFunction function)
 {
     lua_pushlightuserdata(state, &runtime);
@@ -163,6 +587,10 @@ int open_mcp_module(lua_State *state)
     lua_setfield(state, -2, "list_tools");
     push_mcp_function(state, runtime, lua_call_tool);
     lua_setfield(state, -2, "call_tool");
+    push_mcp_function(state, runtime, lua_register_prompt);
+    lua_setfield(state, -2, "register_prompt");
+    push_mcp_function(state, runtime, lua_host_stdio);
+    lua_setfield(state, -2, "host_stdio");
 
     return 1;
 }

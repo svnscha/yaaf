@@ -90,10 +90,10 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
 
 ## Phase 2 - Implementation
 
-- [ ] Add the native stdio MCP host transport and request loop.
-  - [ ] Add host-side request and response types plus stdio line-oriented JSON-RPC plumbing under `libyaaf/mcp/`.
-  - [ ] Implement initialize negotiation, initialized notification handling, request dispatch, and MCP error responses.
-  - [ ] Reuse the generated schema registry to select the hosted protocol version and gate the initial hosted method set.
+- [x] Add the native stdio MCP host transport and request loop.
+  - [x] Add host-side request and response types plus stdio line-oriented JSON-RPC plumbing under `libyaaf/mcp/`.
+  - [x] Implement initialize negotiation, initialized notification handling, request dispatch, and MCP error responses.
+  - [x] Reuse the generated schema registry to select the hosted protocol version and gate the initial hosted method set.
 - [ ] Extend the Lua `mcp` bridge with server-hosting capabilities.
   - [ ] Add Lua-facing host registration and start APIs in `libyaaf/script/modules/script_mcp.*`.
   - [ ] Allow Lua scripts to register hosted prompt descriptors and prompt handlers.
