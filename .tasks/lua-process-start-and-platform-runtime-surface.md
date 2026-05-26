@@ -62,7 +62,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
-| Implementation | [-] | Shared process layer complete (process.h, POSIX/WIN32 backends, CMake integration); in progress on platform_name and Lua bindings |
+| Implementation | [-] | Shared process layer done; platform_name() and yaaf.platform done; pending: Lua process module + MCP refactor |
 | Validation | [ ] | Build and focused tests for Lua + MCP stdio |
 | Documentation | [ ] | Module docs + yaaf runtime docs updated |
 
@@ -96,10 +96,10 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
   - [ ] Return process handle object with agreed operations for write/read/wait/close/terminate
   - [ ] Ensure Lua-facing validation errors are actionable
 
-- [ ] Add `yaaf.platform`
-  - [ ] Extend yaaf context with platform string
-  - [ ] Export field in `require("yaaf")` module table
-  - [ ] Ensure value is normalized and stable across scripts
+- [x] Add `yaaf.platform`
+  - [x] Extend yaaf context with platform string
+  - [x] Export field in `require("yaaf")` module table
+  - [x] Ensure value is normalized and stable across scripts
 
 ## Phase 3 - Validation
 
