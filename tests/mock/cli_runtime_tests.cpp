@@ -510,8 +510,8 @@ TEST(CliTests, ExplicitMcpOptionOverridesYaafMcpJsonDiscovery)
 
         std::istringstream input;
         std::ostringstream error_output;
-        const auto exit_code = yaaf::cli::run(
-            {"run", "--mcp", explicit_path.string(), script_path.string()}, input, output, error_output);
+        const auto exit_code =
+            yaaf::cli::run({"run", "--mcp", explicit_path.string(), script_path.string()}, input, output, error_output);
 
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());

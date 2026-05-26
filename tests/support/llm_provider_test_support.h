@@ -39,8 +39,8 @@ class ScriptedProviderHttpFixture
             throw std::runtime_error("provider test fixture received invalid JSON body");
         }
 
-        requests_.push_back(RecordedHttpPost{std::string(url), std::string(body), payload, headers,
-                                             on_response_chunk != nullptr});
+        requests_.push_back(
+            RecordedHttpPost{std::string(url), std::string(body), payload, headers, on_response_chunk != nullptr});
 
         const auto request_url = std::string(url);
         if (ends_with(request_url, "/api/generate"))
@@ -147,7 +147,8 @@ class ScriptedProviderHttpFixture
         {
             return {};
         }
-        if (const auto function_payload = tool.find("function"); function_payload != tool.end() && function_payload->is_object())
+        if (const auto function_payload = tool.find("function");
+            function_payload != tool.end() && function_payload->is_object())
         {
             return function_payload->value("name", std::string{});
         }
@@ -182,18 +183,25 @@ class ScriptedProviderHttpFixture
         const auto model = payload.value("model", "");
         if (on_response_chunk != nullptr || payload.value("stream", false))
         {
-            emit_chunk(on_response_chunk,
-                       nlohmann::json{{"model", model}, {"created_at", "2026-05-24T00:00:00Z"},
-                                      {"response", completion_prefix()}, {"done", false}}
-                           .dump() + "\n");
-            emit_chunk(on_response_chunk,
-                       nlohmann::json{{"model", model}, {"created_at", "2026-05-24T00:00:01Z"},
-                                      {"response", completion_suffix()}, {"done", false}}
-                           .dump() + "\n");
-            emit_chunk(on_response_chunk,
-                       nlohmann::json{{"model", model}, {"created_at", "2026-05-24T00:00:02Z"},
-                                      {"done", true}, {"done_reason", "stop"}, {"eval_count", 5}}
-                           .dump() + "\n");
+            emit_chunk(on_response_chunk, nlohmann::json{{"model", model},
+                                                         {"created_at", "2026-05-24T00:00:00Z"},
+                                                         {"response", completion_prefix()},
+                                                         {"done", false}}
+                                                  .dump() +
+                                              "\n");
+            emit_chunk(on_response_chunk, nlohmann::json{{"model", model},
+                                                         {"created_at", "2026-05-24T00:00:01Z"},
+                                                         {"response", completion_suffix()},
+                                                         {"done", false}}
+                                                  .dump() +
+                                              "\n");
+            emit_chunk(on_response_chunk, nlohmann::json{{"model", model},
+                                                         {"created_at", "2026-05-24T00:00:02Z"},
+                                                         {"done", true},
+                                                         {"done_reason", "stop"},
+                                                         {"eval_count", 5}}
+                                                  .dump() +
+                                              "\n");
             return HttpClient::Response{200, "application/json", "", {}};
         }
 
@@ -216,36 +224,40 @@ class ScriptedProviderHttpFixture
                                       {"created_at", "2026-05-24T00:00:00Z"},
                                       {"message", {{"role", "assistant"}, {"content", completion_prefix()}}},
                                       {"done", false}}
-                           .dump() + "\n");
+                               .dump() +
+                           "\n");
             emit_chunk(on_response_chunk,
                        nlohmann::json{{"model", model},
                                       {"created_at", "2026-05-24T00:00:01Z"},
                                       {"message", {{"role", "assistant"}, {"content", completion_suffix()}}},
                                       {"done", false}}
-                           .dump() + "\n");
-            emit_chunk(on_response_chunk,
-                       nlohmann::json{{"model", model},
-                                      {"created_at", "2026-05-24T00:00:02Z"},
-                                      {"message", {{"role", "assistant"}}},
-                                      {"done", true},
-                                      {"done_reason", "stop"}}
-                           .dump() + "\n");
+                               .dump() +
+                           "\n");
+            emit_chunk(on_response_chunk, nlohmann::json{{"model", model},
+                                                         {"created_at", "2026-05-24T00:00:02Z"},
+                                                         {"message", {{"role", "assistant"}}},
+                                                         {"done", true},
+                                                         {"done_reason", "stop"}}
+                                                  .dump() +
+                                              "\n");
             return HttpClient::Response{200, "application/json", "", {}};
         }
 
         if (has_tools(payload) && !last_tool_message_content(payload).has_value())
         {
             const auto tool_name = first_tool_name(payload);
-            return json_response({{"model", model},
-                                  {"created_at", "2026-05-24T00:00:00Z"},
-                                  {"message",
-                                   {{"role", "assistant"},
-                                    {"content", ""},
-                                    {"tool_calls", nlohmann::json::array({{{"type", "function"},
-                                                                              {"function", {{"name", tool_name},
-                                                                                            {"arguments", scripted_tool_arguments(tool_name)}}}}})}}},
-                                  {"done", true},
-                                  {"done_reason", "stop"}});
+            return json_response(
+                {{"model", model},
+                 {"created_at", "2026-05-24T00:00:00Z"},
+                 {"message",
+                  {{"role", "assistant"},
+                   {"content", ""},
+                   {"tool_calls",
+                    nlohmann::json::array(
+                        {{{"type", "function"},
+                          {"function", {{"name", tool_name}, {"arguments", scripted_tool_arguments(tool_name)}}}}})}}},
+                 {"done", true},
+                 {"done_reason", "stop"}});
         }
 
         return json_response({{"model", model},
@@ -281,31 +293,30 @@ class ScriptedProviderHttpFixture
         {
             emit_chunk(on_response_chunk,
                        "data: " +
-                           nlohmann::json{{"model", model},
-                                          {"created", 1712345678},
-                                          {"choices", {{{"index", 0},
-                                                         {"delta", {{"role", "assistant"},
-                                                                     {"content", completion_prefix()}}}}}}}
+                           nlohmann::json{
+                               {"model", model},
+                               {"created", 1712345678},
+                               {"choices",
+                                {{{"index", 0}, {"delta", {{"role", "assistant"}, {"content", completion_prefix()}}}}}}}
                                .dump() +
                            "\n\n");
             emit_chunk(on_response_chunk,
                        "data: " +
                            nlohmann::json{{"model", model},
                                           {"created", 1712345678},
-                                          {"choices", {{{"index", 0},
-                                                         {"delta", {{"content", completion_suffix()}}}}}}}
+                                          {"choices", {{{"index", 0}, {"delta", {{"content", completion_suffix()}}}}}}}
                                .dump() +
                            "\n\n");
-            emit_chunk(on_response_chunk,
-                       "data: " +
-                           nlohmann::json{{"model", model},
-                                          {"created", 1712345678},
-                                          {"choices", {{{"index", 0},
-                                                         {"delta", nlohmann::json::object()},
-                                                         {"finish_reason", "stop"}}}},
-                                          {"usage", {{"prompt_tokens", 5}}}}
-                               .dump() +
-                           "\n\n");
+            emit_chunk(
+                on_response_chunk,
+                "data: " +
+                    nlohmann::json{
+                        {"model", model},
+                        {"created", 1712345678},
+                        {"choices", {{{"index", 0}, {"delta", nlohmann::json::object()}, {"finish_reason", "stop"}}}},
+                        {"usage", {{"prompt_tokens", 5}}}}
+                        .dump() +
+                    "\n\n");
             emit_chunk(on_response_chunk, "data: [DONE]\n\n");
             return HttpClient::Response{200, "application/json", "", {}};
         }
@@ -313,18 +324,21 @@ class ScriptedProviderHttpFixture
         if (has_tools(payload) && !last_tool_message_content(payload).has_value())
         {
             const auto tool_name = first_tool_name(payload);
-            return json_response({{"model", model},
-                                  {"created", 1712345678},
-                                  {"choices",
-                                   {{{"index", 0},
-                                     {"finish_reason", "tool_calls"},
-                                     {"message",
-                                      {{"role", "assistant"},
-                                       {"content", ""},
-                                       {"tool_calls", nlohmann::json::array({{{"type", "function"},
-                                                                                 {"function", {{"name", tool_name},
-                                                                                               {"arguments", scripted_tool_arguments(tool_name).dump()}}}}})}}}}}},
-                                  {"usage", {{"prompt_tokens", 5}}}});
+            return json_response(
+                {{"model", model},
+                 {"created", 1712345678},
+                 {"choices",
+                  {{{"index", 0},
+                    {"finish_reason", "tool_calls"},
+                    {"message",
+                     {{"role", "assistant"},
+                      {"content", ""},
+                      {"tool_calls",
+                       nlohmann::json::array(
+                           {{{"type", "function"},
+                             {"function",
+                              {{"name", tool_name}, {"arguments", scripted_tool_arguments(tool_name).dump()}}}}})}}}}}},
+                 {"usage", {{"prompt_tokens", 5}}}});
         }
 
         return json_response({{"model", model},

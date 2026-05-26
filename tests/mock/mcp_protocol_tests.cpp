@@ -184,7 +184,8 @@ TEST(McpProtocolMockTests, ReportsSseTransportFailuresAndParsesMultiLinePayloads
         const auto method = request.at("method").get<std::string>();
         if (method == "initialize")
         {
-            return HttpClient::Response{200, "text/event-stream",
+            return HttpClient::Response{200,
+                                        "text/event-stream",
                                         "event: message\r\n"
                                         "data: {\"jsonrpc\":\"2.0\",\r\n"
                                         "data: \"id\":" +
@@ -543,9 +544,7 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
                                        {{"type", "http"},
                                         {"url", "https://docs.example.test/mcp"},
                                         {"headers", {{"Authorization", "Bearer docs-secret"}}}}},
-                                      {"local",
-                                       {{"type", "stdio"},
-                                        {"env", {{"API_TOKEN", "stdio-secret"}}}}}}}});
+                                      {"local", {{"type", "stdio"}, {"env", {{"API_TOKEN", "stdio-secret"}}}}}}}});
 
     yaaf::cli::Services services;
     services.mcp_http_post = [](std::string_view url, std::string_view body, std::string_view,
@@ -561,8 +560,8 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
             payload["id"] = request.at("id");
             payload["result"]["protocolVersion"] = "2025-06-18";
             payload["result"]["capabilities"]["tools"] = nlohmann::json::object();
-            payload["result"]["serverInfo"] = {{"name", url_string.find("docs") != std::string::npos ? "docs" : "broken"},
-                                                {"version", "1"}};
+            payload["result"]["serverInfo"] = {
+                {"name", url_string.find("docs") != std::string::npos ? "docs" : "broken"}, {"version", "1"}};
             return json_response(payload);
         }
         if (method == "notifications/initialized")
@@ -574,8 +573,8 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
             nlohmann::json payload;
             payload["jsonrpc"] = "2.0";
             payload["id"] = request.at("id");
-            payload["result"]["tools"] = nlohmann::json::array(
-                {{{"name", "lookup"}, {"title", "Lookup"}, {"description", "Look up docs"}}});
+            payload["result"]["tools"] =
+                nlohmann::json::array({{{"name", "lookup"}, {"title", "Lookup"}, {"description", "Look up docs"}}});
             return json_response(payload);
         }
         if (method == "tools/list" && url_string.find("broken") != std::string::npos)
@@ -588,9 +587,8 @@ TEST(McpDoctorMockTests, DoctorJsonIncludesActiveMcpDiagnosticsAndRedactsSecrets
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error_output;
-    const auto exit_code =
-        yaaf::cli::run({"--mcp", mcp_path.string(), "doctor", "--format", "json"}, input, output, error_output,
-                       &services);
+    const auto exit_code = yaaf::cli::run({"--mcp", mcp_path.string(), "doctor", "--format", "json"}, input, output,
+                                          error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
@@ -635,16 +633,14 @@ TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
 {
     const auto workspace = make_workspace("assistant_mcp_doctor_text_test");
     const auto mcp_path = workspace_mcp_config_path(workspace);
-    write_mcp_config(workspace,
-                     nlohmann::json{{"servers",
-                                     {{"docs",
-                                       {{"type", "http"},
-                                        {"url", "https://docs.example.test/mcp"},
-                                        {"headers", {{"Authorization", "Bearer docs-secret"}}}}}}}});
+    write_mcp_config(workspace, nlohmann::json{{"servers",
+                                                {{"docs",
+                                                  {{"type", "http"},
+                                                   {"url", "https://docs.example.test/mcp"},
+                                                   {"headers", {{"Authorization", "Bearer docs-secret"}}}}}}}});
 
     yaaf::cli::Services services;
-    services.mcp_http_post = [](std::string_view, std::string_view body, std::string_view,
-                                const yaaf::mcp::Headers &) {
+    services.mcp_http_post = [](std::string_view, std::string_view body, std::string_view, const yaaf::mcp::Headers &) {
         const auto request = nlohmann::json::parse(body);
         const auto method = request.at("method").get<std::string>();
         if (method == "initialize")
@@ -672,8 +668,8 @@ TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error_output;
-    const auto exit_code = yaaf::cli::run({"--mcp", mcp_path.string(), "doctor"}, input, output, error_output,
-                                          &services);
+    const auto exit_code =
+        yaaf::cli::run({"--mcp", mcp_path.string(), "doctor"}, input, output, error_output, &services);
 
     EXPECT_EQ(exit_code, EXIT_SUCCESS);
     EXPECT_TRUE(error_output.str().empty());
@@ -688,13 +684,12 @@ TEST(McpDoctorMockTests, DoctorTextIncludesActiveMcpDiagnosticsSummary)
 namespace
 {
 /// Helper to create a Host with mock callbacks
-[[nodiscard]] yaaf::mcp::Host create_test_host(
-    const std::vector<yaaf::mcp::ToolInfo> &tools = {},
-    const std::vector<yaaf::mcp::PromptDescriptor> &prompts = {},
-    yaaf::mcp::ToolLister tool_lister = nullptr,
-    yaaf::mcp::ToolExecutor tool_executor = nullptr,
-    yaaf::mcp::PromptLister prompt_lister = nullptr,
-    yaaf::mcp::PromptExecutor prompt_executor = nullptr)
+[[nodiscard]] yaaf::mcp::Host create_test_host(const std::vector<yaaf::mcp::ToolInfo> &tools = {},
+                                               const std::vector<yaaf::mcp::PromptDescriptor> &prompts = {},
+                                               yaaf::mcp::ToolLister tool_lister = nullptr,
+                                               yaaf::mcp::ToolExecutor tool_executor = nullptr,
+                                               yaaf::mcp::PromptLister prompt_lister = nullptr,
+                                               yaaf::mcp::PromptExecutor prompt_executor = nullptr)
 {
     // Create default tool_lister if not provided
     if (!tool_lister && !tools.empty())
@@ -709,13 +704,13 @@ namespace
     }
 
     const auto schema_backend = std::make_shared<TestSchemaBackend>(
-        "2025-06-18", std::vector<yaaf::mcp::schema::MethodInfo>{
-                          {"initialize", "InitializeRequest"},
-                          {"notifications/initialized", "InitializedNotification"},
-                          {"tools/list", "ListToolsRequest"},
-                          {"tools/call", "CallToolRequest"},
-                          {"prompts/list", "ListPromptsRequest"},
-                          {"prompts/get", "GetPromptRequest"}});
+        "2025-06-18",
+        std::vector<yaaf::mcp::schema::MethodInfo>{{"initialize", "InitializeRequest"},
+                                                   {"notifications/initialized", "InitializedNotification"},
+                                                   {"tools/list", "ListToolsRequest"},
+                                                   {"tools/call", "CallToolRequest"},
+                                                   {"prompts/list", "ListPromptsRequest"},
+                                                   {"prompts/get", "GetPromptRequest"}});
 
     return yaaf::mcp::Host{schema_backend, tool_executor, prompt_executor, tool_lister, prompt_lister};
 }
@@ -791,12 +786,11 @@ TEST(McpHostProtocolTests, HostFiltersToolsByName)
     };
 
     // Create host with custom tool_lister that filters
-    auto host = create_test_host(
-        {}, {}, [&tools]() {
-            std::vector<yaaf::mcp::ToolInfo> filtered;
-            filtered.push_back(tools[0]);  // Only include echo
-            return filtered;
-        });
+    auto host = create_test_host({}, {}, [&tools]() {
+        std::vector<yaaf::mcp::ToolInfo> filtered;
+        filtered.push_back(tools[0]); // Only include echo
+        return filtered;
+    });
 
     (void)host.initialize({{"protocolVersion", "2025-06-18"}});
     const auto listed = host.list_tools();
@@ -807,13 +801,11 @@ TEST(McpHostProtocolTests, HostFiltersToolsByName)
 
 TEST(McpHostProtocolTests, HostCallsToolViaExecutor)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr,
-        [](const std::string &name, const nlohmann::json &args) {
-            EXPECT_EQ(name, "test_tool");
-            EXPECT_EQ(args.at("param"), "value");
-            return yaaf::mcp::ToolExecutorResult{"Success!", false};
-        });
+    auto host = create_test_host({}, {}, nullptr, [](const std::string &name, const nlohmann::json &args) {
+        EXPECT_EQ(name, "test_tool");
+        EXPECT_EQ(args.at("param"), "value");
+        return yaaf::mcp::ToolExecutorResult{"Success!", false};
+    });
 
     (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
@@ -826,11 +818,9 @@ TEST(McpHostProtocolTests, HostCallsToolViaExecutor)
 
 TEST(McpHostProtocolTests, HostMapsToolErrorToMcpResult)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr,
-        [](const std::string &, const nlohmann::json &) {
-            return yaaf::mcp::ToolExecutorResult{"Tool failed", true};
-        });
+    auto host = create_test_host({}, {}, nullptr, [](const std::string &, const nlohmann::json &) {
+        return yaaf::mcp::ToolExecutorResult{"Tool failed", true};
+    });
 
     (void)host.initialize({{"protocolVersion", "2025-06-18"}});
 
@@ -845,18 +835,11 @@ TEST(McpHostProtocolTests, HostListsPromptsFromExecutor)
 {
     const std::vector<yaaf::mcp::PromptDescriptor> prompts{
         yaaf::mcp::PromptDescriptor{
-            "weather", 
-            "Get weather", 
-            {yaaf::mcp::PromptArgument{"location", "Location name", true}}
-        },
-        yaaf::mcp::PromptDescriptor{
-            "greeting", 
-            "Greeting prompt", 
-            {
-                yaaf::mcp::PromptArgument{"name", "User name", false},
-                yaaf::mcp::PromptArgument{"greeting", "Greeting type", true}
-            }
-        },
+            "weather", "Get weather", {yaaf::mcp::PromptArgument{"location", "Location name", true}}},
+        yaaf::mcp::PromptDescriptor{"greeting",
+                                    "Greeting prompt",
+                                    {yaaf::mcp::PromptArgument{"name", "User name", false},
+                                     yaaf::mcp::PromptArgument{"greeting", "Greeting type", true}}},
     };
 
     auto host = create_test_host({}, prompts);
@@ -877,9 +860,8 @@ TEST(McpHostProtocolTests, HostListsPromptsFromExecutor)
 
 TEST(McpHostProtocolTests, HostGetPromptViaExecutor)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr, nullptr, nullptr,
-        [](const std::string &name, const nlohmann::json &args) {
+    auto host =
+        create_test_host({}, {}, nullptr, nullptr, nullptr, [](const std::string &name, const nlohmann::json &args) {
             EXPECT_EQ(name, "test_prompt");
             EXPECT_EQ(args.at("role"), "user");
             return std::vector<yaaf::mcp::PromptMessage>{
@@ -985,10 +967,9 @@ TEST(McpHostProtocolTests, StdioHostProcessesListToolsRequest)
     auto host = create_test_host(tools);
 
     // Simulate: initialize, then list tools, then EOF
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\", \"params\": {} }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/list\", \"params\": {} }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1013,18 +994,15 @@ TEST(McpHostProtocolTests, StdioHostProcessesListToolsRequest)
 
 TEST(McpHostProtocolTests, StdioHostProcessesCallToolRequest)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr,
-        [](const std::string &name, const nlohmann::json &args) {
-            return yaaf::mcp::ToolExecutorResult{
-                fmt::format("Called {} with param={}", name, args.at("param").get<std::string>()), false};
-        });
+    auto host = create_test_host({}, {}, nullptr, [](const std::string &name, const nlohmann::json &args) {
+        return yaaf::mcp::ToolExecutorResult{
+            fmt::format("Called {} with param={}", name, args.at("param").get<std::string>()), false};
+    });
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/call\", \"params\": "
-        "{ \"name\": \"mytool\", \"arguments\": { \"param\": \"value\" } } }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/call\", \"params\": "
+                             "{ \"name\": \"mytool\", \"arguments\": { \"param\": \"value\" } } }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1043,10 +1021,9 @@ TEST(McpHostProtocolTests, StdioHostReturnsErrorForUnknownMethod)
 {
     auto host = create_test_host();
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"unknown/method\", \"params\": {} }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"unknown/method\", \"params\": {} }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1058,17 +1035,16 @@ TEST(McpHostProtocolTests, StdioHostReturnsErrorForUnknownMethod)
     const auto error_resp = parse_jsonrpc_response(lines[1]);
     EXPECT_EQ(error_resp.at("id"), 2);
     EXPECT_TRUE(error_resp.contains("error"));
-    EXPECT_EQ(error_resp.at("error").at("code"), -32601);  // METHOD_NOT_FOUND
+    EXPECT_EQ(error_resp.at("error").at("code"), -32601); // METHOD_NOT_FOUND
 }
 
 TEST(McpHostProtocolTests, StdioHostReturnsErrorForMalformedJson)
 {
     auto host = create_test_host();
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ invalid json }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ invalid json }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1085,7 +1061,7 @@ TEST(McpHostProtocolTests, StdioHostReturnsErrorForMalformedJson)
         try
         {
             const auto resp = parse_jsonrpc_response(line);
-            if (resp.contains("error") && resp.at("error").at("code") == -32700)  // JSON_PARSE_ERROR
+            if (resp.contains("error") && resp.at("error").at("code") == -32700) // JSON_PARSE_ERROR
             {
                 found_parse_error = true;
                 break;
@@ -1103,13 +1079,12 @@ TEST(McpHostProtocolTests, StdioHostEndsOnInputEof)
 {
     auto host = create_test_host();
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
-    stdio_host.run();  // Should return cleanly after EOF
+    stdio_host.run(); // Should return cleanly after EOF
 
     const auto lines = extract_response_lines(output.str());
     ASSERT_EQ(lines.size(), 1U);
@@ -1120,18 +1095,14 @@ TEST(McpHostProtocolTests, StdioHostProcessesListPromptsRequest)
 {
     const std::vector<yaaf::mcp::PromptDescriptor> prompts{
         yaaf::mcp::PromptDescriptor{
-            "weather",
-            "Get weather",
-            {yaaf::mcp::PromptArgument{"location", "Location name", true}}
-        },
+            "weather", "Get weather", {yaaf::mcp::PromptArgument{"location", "Location name", true}}},
     };
 
     auto host = create_test_host({}, prompts);
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"prompts/list\", \"params\": {} }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"prompts/list\", \"params\": {} }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1150,20 +1121,19 @@ TEST(McpHostProtocolTests, StdioHostProcessesListPromptsRequest)
 
 TEST(McpHostProtocolTests, StdioHostProcessesGetPromptRequest)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr, nullptr, nullptr,
-        [](const std::string &name, const nlohmann::json &args) {
+    auto host =
+        create_test_host({}, {}, nullptr, nullptr, nullptr, [](const std::string &name, const nlohmann::json &args) {
             return std::vector<yaaf::mcp::PromptMessage>{
-                yaaf::mcp::PromptMessage{"user", fmt::format("Get {} for {}", name, args.at("location").get<std::string>())},
+                yaaf::mcp::PromptMessage{"user",
+                                         fmt::format("Get {} for {}", name, args.at("location").get<std::string>())},
                 yaaf::mcp::PromptMessage{"assistant", "Here's the weather"},
             };
         });
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"prompts/get\", \"params\": "
-        "{ \"name\": \"weather\", \"arguments\": { \"location\": \"NYC\" } } }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"prompts/get\", \"params\": "
+                             "{ \"name\": \"weather\", \"arguments\": { \"location\": \"NYC\" } } }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1182,17 +1152,15 @@ TEST(McpHostProtocolTests, StdioHostProcessesGetPromptRequest)
 
 TEST(McpHostProtocolTests, StdioHostCatchesToolExecutorException)
 {
-    auto host = create_test_host(
-        {}, {}, nullptr,
-        [](const std::string &, const nlohmann::json &) -> yaaf::mcp::ToolExecutorResult {
-            throw std::runtime_error("Tool executor crashed");
-        });
+    auto host = create_test_host({}, {}, nullptr,
+                                 [](const std::string &, const nlohmann::json &) -> yaaf::mcp::ToolExecutorResult {
+                                     throw std::runtime_error("Tool executor crashed");
+                                 });
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
-        "{ \"protocolVersion\": \"2025-06-18\" } }\n"
-        "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/call\", \"params\": "
-        "{ \"name\": \"crash\", \"arguments\": {} } }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"initialize\", \"params\": "
+                             "{ \"protocolVersion\": \"2025-06-18\" } }\n"
+                             "{ \"jsonrpc\": \"2.0\", \"id\": 2, \"method\": \"tools/call\", \"params\": "
+                             "{ \"name\": \"crash\", \"arguments\": {} } }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1204,17 +1172,15 @@ TEST(McpHostProtocolTests, StdioHostCatchesToolExecutorException)
     const auto error_resp = parse_jsonrpc_response(lines[1]);
     EXPECT_EQ(error_resp.at("id"), 2);
     EXPECT_TRUE(error_resp.contains("error"));
-    EXPECT_EQ(error_resp.at("error").at("code"), -32603);  // INTERNAL_ERROR
-    EXPECT_NE(error_resp.at("error").at("message").get<std::string>().find("crashed"),
-              std::string::npos);
+    EXPECT_EQ(error_resp.at("error").at("code"), -32603); // INTERNAL_ERROR
+    EXPECT_NE(error_resp.at("error").at("message").get<std::string>().find("crashed"), std::string::npos);
 }
 
 TEST(McpHostProtocolTests, StdioHostRequiresInitializeBeforeOtherMethods)
 {
     auto host = create_test_host({{"echo", "Echo tool", nlohmann::json::object()}});
 
-    std::istringstream input(
-        "{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"tools/list\", \"params\": {} }\n");
+    std::istringstream input("{ \"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"tools/list\", \"params\": {} }\n");
 
     std::ostringstream output;
     yaaf::mcp::StdioHost stdio_host{host, input, output};
@@ -1226,7 +1192,6 @@ TEST(McpHostProtocolTests, StdioHostRequiresInitializeBeforeOtherMethods)
     const auto error_resp = parse_jsonrpc_response(lines[0]);
     EXPECT_EQ(error_resp.at("id"), 1);
     EXPECT_TRUE(error_resp.contains("error"));
-    EXPECT_EQ(error_resp.at("error").at("code"), -32600);  // INVALID_REQUEST
-    EXPECT_NE(error_resp.at("error").at("message").get<std::string>().find("not initialized"),
-              std::string::npos);
+    EXPECT_EQ(error_resp.at("error").at("code"), -32600); // INVALID_REQUEST
+    EXPECT_NE(error_resp.at("error").at("message").get<std::string>().find("not initialized"), std::string::npos);
 }

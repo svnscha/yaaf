@@ -190,8 +190,8 @@ HttpClient::Response run_request(const HttpClient::Request &request, const Globa
             return services->http_request(request);
         }
 
-        if (request.method == "GET" && services->http_get && !request.body.has_value() && !request.content_type.has_value() &&
-            !request.timeout.has_value() && !request.on_response_chunk)
+        if (request.method == "GET" && services->http_get && !request.body.has_value() &&
+            !request.content_type.has_value() && !request.timeout.has_value() && !request.on_response_chunk)
         {
             return services->http_get(request.url, request.headers);
         }
@@ -327,8 +327,8 @@ HttpClient::Response run_post(std::string_view url, std::string_view body, std::
             std::move(name),
             entry.path(),
             yaaf::script::read_command_metadata(options),
-            {},  // options
-            {}   // positionals
+            {}, // options
+            {}  // positionals
         });
     }
 
@@ -369,12 +369,13 @@ void register_lua_commands(CLI::App &app, std::vector<LuaCommand> &commands)
                 }
                 else if (binding.type == "strings")
                 {
-                    binding.option = command.app
-                        ->add_option_function<std::string>(
-                            std::move(names),
-                            [&binding](const std::string &value) { binding.string_values.push_back(value); },
-                            description)
-                        ->multi_option_policy(CLI::MultiOptionPolicy::TakeAll);
+                    binding.option =
+                        command.app
+                            ->add_option_function<std::string>(
+                                std::move(names),
+                                [&binding](const std::string &value) { binding.string_values.push_back(value); },
+                                description)
+                            ->multi_option_policy(CLI::MultiOptionPolicy::TakeAll);
                 }
                 else
                 {
@@ -649,7 +650,9 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
 
     if (services->http_request)
     {
-        script_services.http_request = [&](const HttpClient::Request &request) { return services->http_request(request); };
+        script_services.http_request = [&](const HttpClient::Request &request) {
+            return services->http_request(request);
+        };
     }
 
     if (services->http_get)
@@ -678,7 +681,7 @@ int run_script(const ScriptCommandOptions &script_options, const GlobalOptions &
     {
         script_services.mcp_stdio_process_factory = services->mcp_stdio_process_factory;
     }
-    
+
     // Always set MCP schema registry for host_stdio() support
     script_services.mcp_schema_registry =
         services->mcp_schema_registry ? services->mcp_schema_registry : yaaf::mcp::schema::default_registry();
@@ -767,9 +770,9 @@ int run(std::vector<std::string> args, std::istream &input, std::ostream &output
             script_options.file = run_command.file;
             script_options.arguments = normalize_script_arguments(run_command.arguments);
             const auto workspace_root = std::filesystem::current_path();
-            const std::filesystem::path run_explicit_path =
-                !run_command.mcp_config_path.empty() ? std::filesystem::path(run_command.mcp_config_path)
-                                                     : std::filesystem::path(global_options.mcp_config_path);
+            const std::filesystem::path run_explicit_path = !run_command.mcp_config_path.empty()
+                                                                ? std::filesystem::path(run_command.mcp_config_path)
+                                                                : std::filesystem::path(global_options.mcp_config_path);
             script_options.mcp_config_path =
                 resolve_mcp_config_path(run_explicit_path, global_options.mcp_config_path_env, workspace_root);
             const ScopedLuaProviderEnvironment provider_environment{dotenv};
@@ -825,7 +828,3 @@ int run(int argc, const char *const *argv, std::istream &input, std::ostream &ou
     return run(std::move(args), input, output, error_output, services);
 }
 } // namespace yaaf::cli
-
-
-
-

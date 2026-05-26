@@ -203,8 +203,8 @@ inline void write_mcp_config(const std::filesystem::path &workspace, const nlohm
                                                           "python", script})}};
 }
 
-[[nodiscard]] inline nlohmann::json scripted_stdio_server_config(
-    const nlohmann::json &fixture = nlohmann::json{{"kind", "hello"}})
+[[nodiscard]] inline nlohmann::json scripted_stdio_server_config(const nlohmann::json &fixture = nlohmann::json{
+                                                                     {"kind", "hello"}})
 {
     return nlohmann::json{{"type", "stdio"}, {"command", "yaaf-scripted-mcp"}, {"fixture", fixture}};
 }
@@ -268,9 +268,8 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
         if (method == "tools/call")
         {
             const auto params = message.value("params", nlohmann::json::object());
-            push_result(message.at("id"),
-                        call_result(params.value("name", std::string{}),
-                                    params.value("arguments", nlohmann::json::object())));
+            push_result(message.at("id"), call_result(params.value("name", std::string{}),
+                                                      params.value("arguments", nlohmann::json::object())));
             return;
         }
 
@@ -334,8 +333,7 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
             nlohmann::json tool;
             tool["name"] = "fail";
             tool["description"] = "Return a scripted MCP error result.";
-            tool["inputSchema"] = {{"type", "object"},
-                                   {"properties", {{"reason", {{"type", "string"}}}}}};
+            tool["inputSchema"] = {{"type", "object"}, {"properties", {{"reason", {{"type", "string"}}}}}};
             entries.push_back(std::move(tool));
             return entries;
         }
@@ -343,16 +341,14 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
         nlohmann::json hello;
         hello["name"] = "hello";
         hello["description"] = "Return a greeting.";
-        hello["inputSchema"] = {{"type", "object"},
-                                {"properties", {{"name", {{"type", "string"}}}}}};
+        hello["inputSchema"] = {{"type", "object"}, {"properties", {{"name", {{"type", "string"}}}}}};
         entries.push_back(std::move(hello));
 
         nlohmann::json repeat;
         repeat["name"] = "repeat";
         repeat["description"] = "Repeat text multiple times.";
         repeat["inputSchema"] = {{"type", "object"},
-                                  {"properties", {{"text", {{"type", "string"}}},
-                                                   {"count", {{"type", "integer"}}}}}};
+                                 {"properties", {{"text", {{"type", "string"}}}, {"count", {{"type", "integer"}}}}}};
         entries.push_back(std::move(repeat));
         return entries;
     }
@@ -366,8 +362,8 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
         if (fixture_kind() == "env")
         {
             result["content"].push_back({{"type", "text"},
-                                          {"text", environment_override("YAAF_MCP_ENV_FILE") + "|" +
-                                                       environment_override("YAAF_MCP_ENV_INLINE")}});
+                                         {"text", environment_override("YAAF_MCP_ENV_FILE") + "|" +
+                                                      environment_override("YAAF_MCP_ENV_INLINE")}});
             return result;
         }
 
@@ -388,9 +384,9 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
 
         if (tool_name == "repeat")
         {
-            result["content"].push_back({{"type", "text"},
-                                          {"text", scripted_repeat_text(arguments.value("text", std::string{}),
-                                                                         arguments.value("count", 0))}});
+            result["content"].push_back(
+                {{"type", "text"},
+                 {"text", scripted_repeat_text(arguments.value("text", std::string{}), arguments.value("count", 0))}});
             return result;
         }
 
@@ -404,9 +400,8 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
 
     void push_error(const nlohmann::json &id, std::string_view method)
     {
-        responses_.push_back(nlohmann::json{{"jsonrpc", "2.0"},
-                                            {"id", id},
-                                            {"error", {{"code", -32601}, {"message", std::string(method)}}}});
+        responses_.push_back(nlohmann::json{
+            {"jsonrpc", "2.0"}, {"id", id}, {"error", {{"code", -32601}, {"message", std::string(method)}}}});
     }
 
     nlohmann::json raw_;
@@ -459,8 +454,7 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
         {
             payload["result"]["tools"] = nlohmann::json::array();
             payload["result"]["tools"].push_back({{"name", "hello"}, {"description", "Return a greeting."}});
-            payload["result"]["tools"].push_back(
-                {{"name", "repeat"}, {"description", "Repeat text multiple times."}});
+            payload["result"]["tools"].push_back({{"name", "repeat"}, {"description", "Repeat text multiple times."}});
             return scripted_http_response(payload, transport);
         }
 
@@ -481,7 +475,8 @@ class ScriptedStdioProcess final : public yaaf::mcp::detail::StdioPlatformProces
             {
                 payload["result"]["content"].push_back(
                     {{"type", "text"},
-                     {"text", scripted_repeat_text(arguments.value("text", std::string{}), arguments.value("count", 0))}});
+                     {"text",
+                      scripted_repeat_text(arguments.value("text", std::string{}), arguments.value("count", 0))}});
                 return scripted_http_response(payload, transport);
             }
         }
@@ -638,5 +633,3 @@ class TestSchemaRegistry final : public yaaf::mcp::schema::Registry
     std::vector<yaaf::mcp::schema::VersionInfo> versions_;
 };
 } // namespace yaaf::tests::mcp
-
-
