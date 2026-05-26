@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../process/process.h"
 #include "mcp_client.h"
 
 namespace yaaf::mcp::detail
@@ -10,6 +11,29 @@ class StdioPlatformProcess
     virtual ~StdioPlatformProcess() = default;
     virtual void write_message(std::string_view line) = 0;
     [[nodiscard]] virtual nlohmann::json read_message(std::chrono::milliseconds timeout) = 0;
+};
+
+/**
+ * Wrapper that adapts the shared yaaf::process::PlatformProcess to the MCP stdio interface.
+ * This unified implementation replaces platform-specific StdioPlatformProcess subclasses.
+ */
+class McpStdioProcessWrapper final : public StdioPlatformProcess
+{
+  private:
+    std::unique_ptr<yaaf::process::PlatformProcess> platform_process_;
+
+  public:
+    /**
+     * Construct from MCP JSON config. Spawns the process and validates configuration.
+     * @param config JSON object with 'command' (required), 'args', 'env', 'envFile'
+     * @throws std::runtime_error if command is missing or process spawn fails
+     */
+    explicit McpStdioProcessWrapper(const nlohmann::json &config);
+
+    ~McpStdioProcessWrapper() override;
+
+    void write_message(std::string_view line) override;
+    [[nodiscard]] nlohmann::json read_message(std::chrono::milliseconds timeout) override;
 };
 
 [[nodiscard]] std::unique_ptr<StdioPlatformProcess> start_stdio_server(const nlohmann::json &raw);

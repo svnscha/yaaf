@@ -2,7 +2,8 @@
 
 struct lua_State;
 
-namespace yaaf::script::modules {
+namespace yaaf::script::modules
+{
 
 /**
  * Registers the process module as `require("process")`.
@@ -17,4 +18,4 @@ namespace yaaf::script::modules {
  */
 void register_process_module(lua_State *state);
 
-}  // namespace yaaf::script::modules
+} // namespace yaaf::script::modules

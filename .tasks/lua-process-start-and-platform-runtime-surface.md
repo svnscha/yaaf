@@ -62,7 +62,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
-| Implementation | [-] | Shared process layer + platform_name + Lua bindings done; pending: MCP stdio refactor |
+| Implementation | [x] | Shared process layer + platform_name + Lua module + MCP refactor all complete |
 | Validation | [ ] | Build and focused tests for Lua + MCP stdio |
 | Documentation | [ ] | Module docs + yaaf runtime docs updated |
 
@@ -85,10 +85,10 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
   - [x] Implement POSIX backend with cwd + argv + env + stdin/stdout pipe wiring
   - [x] Wire new source files into libyaaf CMake target
 
-- [ ] Refactor MCP stdio to use shared launcher
-  - [ ] Replace duplicated launch/path/env/pipe setup in MCP stdio platform files with shared abstraction
-  - [ ] Preserve existing read/write timeout and process-exit semantics
-  - [ ] Keep public MCP behavior unchanged
+- [x] Refactor MCP stdio to use shared launcher
+  - [x] Replace duplicated launch/path/env/pipe setup in MCP stdio platform files with shared abstraction
+  - [x] Preserve existing read/write timeout and process-exit semantics
+  - [x] Keep public MCP behavior unchanged
 
 - [x] Add Lua `process` module
   - [x] Create module registration and runtime context plumbing in Lua runtime bootstrap
