@@ -41,6 +41,7 @@ target_sources(libyaaf
 
 add_subdirectory(pch)
 add_subdirectory(http)
+add_subdirectory(process)
 
 target_include_directories(libyaaf
   PUBLIC
@@ -58,6 +59,7 @@ target_link_libraries(libyaaf
   PUBLIC
     CURL::libcurl
     fmt::fmt
+    yaaf-process
   PRIVATE
     CLI11::CLI11
     ${LUA_LIBRARIES}

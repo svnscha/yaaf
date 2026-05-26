@@ -62,7 +62,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
-| Implementation | [ ] | Shared native process layer + MCP refactor + Lua module |
+| Implementation | [-] | Shared process layer complete (process.h, POSIX/WIN32 backends, CMake integration); in progress on platform_name and Lua bindings |
 | Validation | [ ] | Build and focused tests for Lua + MCP stdio |
 | Documentation | [ ] | Module docs + yaaf runtime docs updated |
 
@@ -79,11 +79,11 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 
 ## Phase 2 - Implementation
 
-- [ ] Add shared process launch abstraction in native layer
-  - [ ] Introduce platform-agnostic process options/result types (command, args, cwd, env, pipes)
-  - [ ] Implement WIN32 backend using CreateProcess with current-directory support
-  - [ ] Implement POSIX backend with cwd + argv + env + stdin/stdout pipe wiring
-  - [ ] Wire new source files into libyaaf CMake target
+- [x] Add shared process launch abstraction in native layer
+  - [x] Introduce platform-agnostic process options/result types (command, args, cwd, env, pipes)
+  - [x] Implement WIN32 backend using CreateProcess with current-directory support
+  - [x] Implement POSIX backend with cwd + argv + env + stdin/stdout pipe wiring
+  - [x] Wire new source files into libyaaf CMake target
 
 - [ ] Refactor MCP stdio to use shared launcher
   - [ ] Replace duplicated launch/path/env/pipe setup in MCP stdio platform files with shared abstraction
