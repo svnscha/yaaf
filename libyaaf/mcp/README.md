@@ -95,6 +95,47 @@ Linux uses the same `uv`-based stdio fixture flow as macOS. There are no extra L
 
 The stdio tests write a VS Code-shaped MCP JSON file and pass it explicitly so the yaaf runtime starts the server from that config, matching the user-facing flow. The optional HTTP and SSE fixture stack can still be prestarted through `docker compose -f docker-compose.fixture-stack.yml up` for manual transport debugging, proxy inspection, and smoke checks that intentionally exercise real local servers.
 
+## Hosting MCP Servers (Host Bridge)
+
+Yaaf can host MCP servers from Lua scripts using the stdio transport. This allows local scripts and tools to be exposed as standard MCP servers that any MCP client (Claude, etc.) can connect to.
+
+### Entry Point
+
+Host yaaf MCP servers through the `run` subcommand:
+
+```bash
+yaaf run ./examples/mcp_host_example.lua
+```
+
+The Lua script registers tools and prompts, then calls `mcp.host_stdio()` to start listening on stdin/stdout. The script blocks until the client disconnects.
+
+### Hosted Methods Support Matrix
+
+| MCP Method | Support | Notes |
+| --- | --- | --- |
+| `initialize` | ✓ Full | Protocol version negotiation, server info |
+| `tools/list` | ✓ Full | Lists tools from yaaf registry (built-in, custom, and MCP) |
+| `tools/call` | ✓ Full | Executes tools via `tool.execute()` |
+| `prompts/list` | ✓ Full | Lists registered prompts |
+| `prompts/get` | ✓ Full | Executes prompt handlers |
+| `resources/*` | ✗ Not implemented | Out of scope for v1 |
+| `sampling/*` | ✗ Not implemented | Out of scope for v1 |
+| Other methods | ✗ Not implemented | Future enhancements |
+
+Hosted tools can be:
+- Built-in tools like `echo`
+- Custom tools registered via `tool.register()`
+- Remote MCP tools fetched from configured MCP servers and re-exposed
+
+Use the optional `{tools?, prompts?}` parameters to `mcp.host_stdio()` to select which tools and prompts are exposed; if omitted, all registered tools and prompts are exposed.
+
+### Compared to Client Mode
+
+Yaaf has two MCP modes:
+
+- **Client mode** (default): Yaaf consumes remote MCP servers configured in `mcp.json` and uses their tools locally
+- **Host mode** (via `mcp.host_stdio()`): Yaaf becomes the server; a client (Claude or another tool) connects to yaaf and calls registered tools and prompts
+
 ## Lua And CLI Integration
 
 The native client is exposed to Lua through `require("mcp")` with:
@@ -104,6 +145,8 @@ The native client is exposed to Lua through `require("mcp")` with:
 - `mcp.diagnostics()`
 - `mcp.list_tools(server_id)`
 - `mcp.call_tool(server_id, tool_name, arguments)`
+- `mcp.register_prompt(descriptor)` — register prompts for hosting
+- `mcp.host_stdio(options)` — start stdio MCP server
 
 The Lua tool registry exposes MCP tools as `<server>.<tool>`, so configured MCP tools work with existing `ask`, `chat`, and `agent` `--tool` flows. `doctor` now actively initializes each configured server, runs `tools/list`, and reports per-server initialize status plus discovered tool names alongside the MCP config report and generated protocol metadata.
 

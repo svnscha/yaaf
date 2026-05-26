@@ -73,9 +73,9 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
 | Phase | Status | Notes |
 | --- | --- | --- |
 | Discovery | [x] | Host API shape and tool exposure model confirmed |
-| Implementation | [-] | Phase 2.1 native host loop done; Phase 2.2 Lua bridge done; Phase 2.3 wiring in progress |
-| Validation | [ ] | Mock and integration coverage pending |
-| Documentation | [ ] | Lua and MCP docs plus example pending |
+| Implementation | [x] | Phase 2.1 native host loop done; Phase 2.2 Lua bridge done; Phase 2.3 wiring done |
+| Validation | [x] | Mock and integration coverage passed |
+| Documentation | [-] | Lua and MCP docs plus example in progress |
 
 ## Phase 1 - Discovery
 
@@ -105,14 +105,14 @@ Enable `yaaf run <script.lua>` to host an MCP stdio server from Lua, with native
 
 ## Phase 3 - Validation
 
-- [ ] Add focused native tests for the hosted MCP protocol path.
-  - [ ] Extend `tests/mock/mcp_protocol_tests.cpp` with host-side negotiation, dispatch, and error-shape coverage.
-  - [ ] Extend schema-support tests only where hosted method visibility or registry usage changes are observable.
-  - [ ] Add cases for unsupported methods, malformed params, and prompt or tool result mapping.
-- [ ] Add end-to-end stdio runtime coverage for Lua-hosted MCP servers.
-  - [ ] Add an integration test where a Lua script hosts an MCP stdio server through `yaaf run`.
-  - [ ] Add a consuming-client integration test that connects to the hosted Lua server and exercises both prompts and tools.
-  - [ ] Run the smallest relevant test and build loop for touched MCP and script-runtime targets.
+- [x] Add focused native tests for the hosted MCP protocol path.
+  - [x] Extend `tests/mock/mcp_protocol_tests.cpp` with host-side negotiation, dispatch, and error-shape coverage.
+  - [x] Extend schema-support tests only where hosted method visibility or registry usage changes are observable.
+  - [x] Add cases for unsupported methods, malformed params, and prompt or tool result mapping.
+- [x] Add end-to-end stdio runtime coverage for Lua-hosted MCP servers.
+  - [x] Add an integration test where a Lua script hosts an MCP stdio server through `yaaf run`.
+  - [x] Add a consuming-client integration test that connects to the hosted Lua server and exercises both prompts and tools.
+  - [x] Run the smallest relevant test and build loop for touched MCP and script-runtime targets.
 
 ## Phase 4 - Documentation
 

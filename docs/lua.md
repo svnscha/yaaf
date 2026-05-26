@@ -75,3 +75,130 @@ local result = mcp.call_tool("docs", "lookup", { query = "install" })
 ```
 
 The MCP bridge is intentionally thin. Config loading, transports, protocol negotiation, tool listing, and tool calls stay in native C++.
+
+## Authoring MCP Servers with Lua
+
+Yaaf scripts can host MCP servers, allowing local tools and prompts to be consumed by any MCP client (Claude, VS Code, etc.). This is the reverse of the default MCP client mode: instead of yaaf consuming remote servers, MCP clients consume yaaf.
+
+### Entry Point
+
+Host an MCP server directly:
+
+```bash
+yaaf run ./examples/mcp_host_example.lua
+```
+
+The script blocks until the MCP client disconnects. JSON-RPC messages flow over stdin/stdout.
+
+### Authoring Workflow
+
+A typical MCP host script follows this pattern:
+
+```lua
+-- 1. Load required modules
+local tool = require("tool")
+local mcp = require("mcp")
+
+-- 2. Register custom tools
+tool.register({
+  spec = {
+    name = "calculate",
+    description = "Simple calculator",
+    parameters = {
+      type = "object",
+      properties = {
+        expression = {
+          type = "string",
+          description = "Math expression to evaluate"
+        }
+      },
+      required = { "expression" }
+    }
+  },
+  execute = function(args)
+    -- Tool execution logic
+    local result = load("return " .. args.expression)()
+    return {
+      tool_name = "calculate",
+      content = tostring(result),
+      success = true,
+      metadata = {}
+    }
+  end
+})
+
+-- 3. Register prompts (optional)
+mcp.register_prompt({
+  name = "system_role",
+  description = "System role prompt for the assistant",
+  arguments = {
+    { name = "style", description = "Response style: formal or casual" }
+  },
+  handler = function(args)
+    local style = args.style or "formal"
+    return {
+      messages = {
+        {
+          role = "user",
+          content = "You are a helpful assistant. Use a " .. style .. " tone."
+        }
+      }
+    }
+  end
+})
+
+-- 4. Start the server
+mcp.host_stdio({
+  tools = { "calculate", "echo" },
+  prompts = { "system_role" }
+})
+```
+
+### Available Tools
+
+Hosted tools can come from three sources:
+
+1. **Built-in tools:** The `echo` tool shipped with yaaf
+2. **Custom tools:** Registered via `tool.register()` in the same script
+3. **Remote MCP tools:** Tools from configured MCP servers, available via `mcp.servers()`
+
+Use `tool.names()` to list all available tools:
+
+```lua
+local tool = require("tool")
+
+local available = tool.names()
+-- Example output: { "echo", "reverse", "server1.tool1", "server1.tool2" }
+```
+
+### Prompt Specification
+
+Prompts are script-local and must be registered before calling `mcp.host_stdio()`. Each prompt:
+
+- Has a unique `name` and optional `description`
+- Optionally accepts templating arguments (e.g., tone, style, detail level)
+- Returns a table with a `messages` array
+- Each message has `role` (`"user"` or `"assistant"`) and `content` (string)
+
+Prompts allow clients to request system instructions or conversation starters alongside tools.
+
+### Selective Exposure
+
+Use the `{tools?, prompts?}` parameters to expose a subset of registered items:
+
+```lua
+-- Expose only "reverse" and "echo" tools, hide remote MCP tools
+mcp.host_stdio({
+  tools = { "reverse", "echo" },
+  prompts = { "system_role", "greeting" }
+})
+```
+
+If omitted, all tools and prompts are exposed.
+
+### Use Cases
+
+- **Wrap local scripts:** Expose shell commands, local APIs, or file operations as MCP tools
+- **Composite servers:** Use remote MCP tools and augment them with custom logic
+- **Prompt libraries:** Provide system instructions and conversation starters
+- **Local tool testing:** Develop and test tools in isolation before shipping
