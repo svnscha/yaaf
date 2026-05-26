@@ -43,12 +43,27 @@ See [Lua API Reference](modules/index.md) for the full runtime module surface. I
 `require("yaaf")` exposes:
 
 - `yaaf.args`: direct script arguments.
+- `yaaf.platform`: current platform name: `"windows"`, `"linux"`, or `"osx"`.
 - `yaaf.options`: parsed command options for command modules.
 - `yaaf.positionals`: parsed command positionals for command modules.
 - `yaaf.defaults.endpoint`: endpoint resolved from `.env` or the built-in default.
 - `yaaf.defaults.model`: command default model.
 - `yaaf.command(metadata)`: command metadata wrapper.
 - `yaaf.read_line()`, `yaaf.write(text)`, and `yaaf.flush()`.
+
+`require("process")` exposes process spawning and inter-process communication. Start child processes with configurable command, args, working directory, and environment variables. Read and write to stdin/stdout, check process status, and gracefully shut down processes:
+
+```lua
+local process = require("process")
+
+local handle = process.start({
+    command = "echo",
+    args = { "Hello" },
+})
+
+local line, err = handle:read(5000)
+handle:close()
+```
 
 `require("json")` exposes native JSON encode/decode helpers.
 

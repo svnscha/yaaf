@@ -8,7 +8,8 @@ For built-in tool names, schemas, and a custom tool authoring guide, see [Tool R
 
 ## Runtime Modules
 
-- [yaaf](yaaf.md): process, command metadata, stdin/stdout, and runtime defaults.
+- [yaaf](yaaf.md): script arguments, command metadata, platform detection, stdin/stdout, and runtime defaults.
+- [process](process.md): process spawning and inter-process communication.
 - [json](json.md): JSON encode/decode helpers.
 - [http](http.md): low-level request-based HTTP transport bridge.
 - [llm](llm.md): provider-neutral generate, chat, and embed bridge.

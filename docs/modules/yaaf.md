@@ -11,6 +11,7 @@ local yaaf = require("yaaf")
 ## Fields
 
 - `yaaf.args`: array of direct script arguments.
+- `yaaf.platform`: current platform name: `"windows"`, `"linux"`, or `"osx"`.
 - `yaaf.options`: parsed option table for a Lua command module.
 - `yaaf.positionals`: parsed positional table for a Lua command module.
 - `yaaf.defaults.endpoint`: resolved Ollama endpoint.
@@ -43,4 +44,28 @@ return yaaf.command({
         print("hello " .. command.positionals.name)
     end,
 })
+```
+
+## Platform Detection
+
+Use `yaaf.platform` to detect the operating system at runtime:
+
+```lua
+local yaaf = require("yaaf")
+local process = require("process")
+
+-- Use different commands based on platform
+if yaaf.platform == "windows" then
+    -- Windows-specific behavior
+    local handle = process.start({
+        command = "cmd",
+        args = { "/c", "dir" },
+    })
+else
+    -- Unix-like systems (Linux and macOS)
+    local handle = process.start({
+        command = "/bin/sh",
+        args = { "-c", "ls" },
+    })
+end
 ```

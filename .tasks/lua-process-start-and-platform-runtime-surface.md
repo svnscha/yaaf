@@ -64,7 +64,7 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 | Discovery | [x] | API contracts established; research in .github/research/lua-process-api-contracts.md |
 | Implementation | [x] | Shared process layer + platform_name + Lua module + MCP refactor all complete |
 | Validation | [x] | Build and focused tests for Lua + MCP stdio passing (175/175 tests) |
-| Documentation | [ ] | Module docs + yaaf runtime docs updated |
+| Documentation | [x] | Module docs + yaaf runtime docs updated and cross-linked |
 
 ## Phase 1 - Discovery
 
@@ -119,11 +119,12 @@ Provide an explicit, testable Lua API for process startup and I/O, backed by a s
 
 ## Phase 4 - Documentation
 
-- [ ] Document process module API
-  - [ ] Add docs page for `process` module (descriptor fields, handle methods, errors)
-  - [ ] Add one minimal runnable Lua example for process start with cwd + args
+- [x] Document process module API
+  - [x] Add docs page for `process` module (descriptor fields, handle methods, errors)
+  - [x] Add one minimal runnable Lua example for process start with cwd + args
+  - [x] Cross-link to yaaf.platform for platform-specific examples
 
-- [ ] Update yaaf docs for platform field
-  - [ ] Update yaaf module reference to include `yaaf.platform`
-  - [ ] Update runtime overview page to mention process module and platform branching
-  - [ ] Cross-link process docs from module index
+- [x] Update yaaf docs for platform field
+  - [x] Update yaaf module reference to include `yaaf.platform`
+  - [x] Update runtime overview page to mention process module and platform branching
+  - [x] Cross-link process docs from module index
