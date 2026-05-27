@@ -371,7 +371,7 @@ int lua_process_tostring(lua_State *L)
         lua_pushfstring(L, "process_handle<%s>", status);
         return 1;
     }
-    catch (const std::exception &e)
+    catch (const std::exception &)
     {
         lua_pushfstring(L, "process_handle<invalid>");
         return 1;
