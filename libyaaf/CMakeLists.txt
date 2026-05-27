@@ -28,10 +28,12 @@ target_sources(libyaaf
     mcp/mcp_schema_generated.cpp
     ${MCP_SCHEMA_SOURCES}
     platform/executable_path.cpp
+    platform/platform_name.cpp
     script/lua_runtime.cpp
     script/modules/agent.cpp
     script/modules/lua_module_utils.cpp
     script/modules/script_http.cpp
+    script/modules/script_process.cpp
     script/modules/script_yaaf.cpp
     script/modules/script_json.cpp
     script/modules/script_llm.cpp
@@ -41,6 +43,7 @@ target_sources(libyaaf
 
 add_subdirectory(pch)
 add_subdirectory(http)
+add_subdirectory(process)
 
 target_include_directories(libyaaf
   PUBLIC
@@ -58,6 +61,7 @@ target_link_libraries(libyaaf
   PUBLIC
     CURL::libcurl
     fmt::fmt
+    yaaf-process
   PRIVATE
     CLI11::CLI11
     ${LUA_LIBRARIES}

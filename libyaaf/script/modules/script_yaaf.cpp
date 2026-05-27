@@ -1,4 +1,5 @@
 #include "script_yaaf.h"
+#include "../../platform/platform_name.h"
 #include "lua_module_utils.h"
 
 extern "C"
@@ -144,6 +145,9 @@ int open_yaaf_module(lua_State *state)
     lua_setfield(state, -2, "options");
     push_json(state, runtime.positionals);
     lua_setfield(state, -2, "positionals");
+
+    lua_pushlstring(state, runtime.platform.c_str(), runtime.platform.size());
+    lua_setfield(state, -2, "platform");
 
     lua_newtable(state);
     lua_pushlstring(state, runtime.default_endpoint.c_str(), runtime.default_endpoint.size());

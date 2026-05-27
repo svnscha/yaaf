@@ -5,6 +5,7 @@
 #include "modules/script_json.h"
 #include "modules/script_llm.h"
 #include "modules/script_mcp.h"
+#include "modules/script_process.h"
 #include "modules/script_yaaf.h"
 #include "modules/tool.h"
 

@@ -9,6 +9,7 @@ struct ScriptYaafContext
     std::vector<std::string> arguments;
     std::string default_endpoint;
     std::string default_model;
+    std::string platform; // "windows", "linux", or "osx"
     nlohmann::json options = nlohmann::json::object();
     nlohmann::json positionals = nlohmann::json::object();
     nlohmann::json *command_metadata = nullptr;

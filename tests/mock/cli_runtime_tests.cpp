@@ -178,7 +178,7 @@ TEST(CliTests, GlobalProxyOptionCanBeUsedWithGenericHttpRequestOverride)
         EXPECT_TRUE(request.headers.empty());
         EXPECT_FALSE(request.body.has_value());
         EXPECT_FALSE(request.timeout.has_value());
-        return HttpClient::Response{200, "text/plain", "ok"};
+        return HttpClient::Response{200, "text/plain", "ok", {}};
     };
 
     std::istringstream input;
@@ -510,8 +510,8 @@ TEST(CliTests, ExplicitMcpOptionOverridesYaafMcpJsonDiscovery)
 
         std::istringstream input;
         std::ostringstream error_output;
-        const auto exit_code = yaaf::cli::run(
-            {"run", "--mcp", explicit_path.string(), script_path.string()}, input, output, error_output);
+        const auto exit_code =
+            yaaf::cli::run({"run", "--mcp", explicit_path.string(), script_path.string()}, input, output, error_output);
 
         EXPECT_EQ(exit_code, EXIT_SUCCESS);
         EXPECT_TRUE(error_output.str().empty());

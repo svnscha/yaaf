@@ -1,6 +1,7 @@
 #include "lua_runtime.h"
 
 #include "../platform/executable_path.h"
+#include "../platform/platform_name.h"
 
 extern "C"
 {
@@ -260,10 +261,13 @@ int run_file_impl(const LuaRuntimeOptions &options, const Services *services, nl
 
         modules::register_tool_module(state);
 
+        modules::register_process_module(state);
+
         ScriptYaafContext yaaf_context;
         yaaf_context.arguments = options.arguments;
         yaaf_context.default_endpoint = options.endpoint;
         yaaf_context.default_model = options.model;
+        yaaf_context.platform = platform::platform_name();
         yaaf_context.options = options.options;
         yaaf_context.positionals = options.positionals;
         yaaf_context.command_metadata = command_metadata;
@@ -308,7 +312,3 @@ int run_file(const LuaRuntimeOptions &options, const Services *services)
     return run_file_impl(options, services, nullptr);
 }
 } // namespace yaaf::script
-
-
-
-
