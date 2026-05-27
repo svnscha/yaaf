@@ -84,7 +84,7 @@ namespace
 
 [[nodiscard]] std::string getenv_string(const std::string &name)
 {
-    const char *value = std::getenv(name.c_str());
+    const char *value = yaaf::platform::safe_getenv(name.c_str());
     return value != nullptr ? std::string(value) : std::string{};
 }
 

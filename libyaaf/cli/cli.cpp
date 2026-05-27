@@ -10,21 +10,6 @@ namespace yaaf::cli
 {
 namespace
 {
-// Safe cross-platform getenv wrapper to avoid MSVC C4996 deprecation warning
-inline const char *safe_getenv(const char *name) noexcept
-{
-#ifdef _WIN32
-// MSVC deprecates getenv; suppress locally for the safe read
-#pragma warning(push)
-#pragma warning(disable : 4996)
-    const char *result = std::getenv(name);
-#pragma warning(pop)
-    return result;
-#else
-    return std::getenv(name);
-#endif
-}
-
 constexpr std::string_view kDefaultOllamaEndpoint = "http://localhost:11434";
 constexpr std::string_view kDefaultOllamaModel = "qwen3:0.6b";
 
@@ -97,7 +82,7 @@ class ScopedProcessEnvironmentVariable
             return;
         }
 
-        if (const auto *current = safe_getenv(name_.c_str()); current != nullptr)
+        if (const auto *current = yaaf::platform::safe_getenv(name_.c_str()); current != nullptr)
         {
             original_ = current;
         }
@@ -182,7 +167,7 @@ struct ScopedLuaProviderEnvironment
 [[nodiscard]] std::optional<std::string> environment_or_dotenv(const yaaf::dotenv::EnvironmentFile &dotenv,
                                                                std::string_view key)
 {
-    const auto value = safe_getenv(std::string(key).c_str());
+    const auto value = yaaf::platform::safe_getenv(std::string(key).c_str());
     if (value != nullptr && !std::string_view(value).empty())
     {
         return std::string(value);
